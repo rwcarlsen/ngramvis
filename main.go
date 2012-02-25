@@ -17,9 +17,9 @@ func main() {
   }
 
   http.HandleFunc("/", indexHandler)
-  http.HandleFunc("invalid-page", errHandler)
+  http.HandleFunc("/invalid-page/", errHandler)
   http.HandleFunc("/data/", dataHandler)
-  err := http.ListenAndServe(":8080", nil)
+  err := http.ListenAndServe("0.0.0.0:8888", nil)
   if err != nil {
     fmt.Println(err)
   }
