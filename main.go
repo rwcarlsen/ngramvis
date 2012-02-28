@@ -4,10 +4,13 @@ package main
 import (
   "io/ioutil"
   "fmt"
+  gosql "github.com/kuroneko/gosqlite3"
   "net/http"
 )
 
 func main() {
+  loadData()
+
   fmt.Println("Starting http server...")
   indexHandler := staticFileHandler("index.html")
   errHandler := staticFileHandler("error.html")
@@ -35,3 +38,8 @@ func staticFileHandler(file_name string) func(http.ResponseWriter,
   }
 }
 
+func loadData() {
+  db, _ := gosql.Open("/home/robert/cycout/cyclus.sqlite")
+  fmt.Println(db)
+
+}
