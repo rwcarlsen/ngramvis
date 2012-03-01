@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html>
   <head>
     <script type="text/javascript" src="http://mbostock.github.com/d3/d3.js"></script>
@@ -7,36 +8,48 @@
     <h1>Hello from Go!</h1>
     <div id="viz"></div>
     <script type="text/javascript">
+      var data;
 
-      var h = 700;
+      d3.json("/data", function(json) {
+        data = json;
+        renderVis();
+      })
+
+    function renderVis() {
+
+      var h = 400;
       var w = 400;
+
+      var x = d3.scale.linear()
+       .domain([0, d3.max(data, function(d) {return d.PageDensity;})])
+       .range([0, w])
+      var y = d3.scale.linear()
+       .domain([0, d3.max(data, function(d) {return d.BookCount;})])
+       .range([0, h])
+
       var data = [50, 100, 150, 200];
       var viz = d3.select("#viz")
       .append("svg:svg")
-      .attr("width", w)
-      .attr("height", h);    
+      .attr("width", x)
+      .attr("height", y);    
 
       var circle = viz.selectAll("circle")
       circle.data(data)
         .enter().append("svg:circle")
         .style("stroke", "black")
         .style("fill", "black")
-        .attr("r", 20)
-        .attr("cy", 100)
+        .attr("r", 10)
+        .attr("cy", function(d) {return d.BookCount;})
+        .attr("cx", function(d) {return d.PageDensity;})
         .on("mouseover", function(){
-          d3.select(this).style("fill", "blue")
-            .transition()
-            .delay(100)
-            .duration(1000)    
-            .attr("cy", Math.random() * h);
+          d3.select(this)
+            .style("fill", "blue");
         })
         .on("mouseout", function(){
           d3.select(this)
             .style("fill", "black");
           })
-
-      viz.selectAll("circle")
-        .attr("cx", function(d) {return d;})
+    }
 
     </script>
   </body>
