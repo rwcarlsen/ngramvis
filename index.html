@@ -9,15 +9,30 @@
     <div id="viz"></div>
     <script type="text/javascript">
 
-      d3.json("/data", function(json) {
-        var data = json;
-        renderVis(data);
+
+      // tooltip stuff:
+      var tooltip = d3.select("body")
+        .append("div")
+        .style("position", "absolute")
+        .style("background-color", "lightgrey")
+        .style("z-index", "10")
+        .style("visibility", "hidden")
+        .text("a simple tooltip");
+
+      // load external word data
+      var data;
+      d3.json("/data/100", function(json) {
+        data = json;
+        renderVis();
       })
 
-      function renderVis(data) {
+      // render the data
+      function renderVis() {
 
-        var h = "400px";
-        var w = "600px";
+        var h = 400;
+        var w = 600;
+        var r = 5;
+        var rbig = 8;
 
         bkmin = d3.min(data, function(d) {return d.BookCount;})
         bkmax = d3.max(data, function(d) {return d.BookCount;})
@@ -27,10 +42,10 @@
 
         var xscale = d3.scale.linear()
          .domain([dmin, dmax])
-         .range([0, w])
+         .range([0+r, w-10])
         var yscale = d3.scale.linear()
          .domain([bkmin, bkmax])
-         .range([h, 0])
+         .range([h-10, 0+r])
 
         var viz = d3.select("#viz")
         .append("svg:svg")
@@ -42,28 +57,30 @@
           .enter().append("svg:circle")
           .style("stroke", "red")
           .style("fill", "black")
-          .attr("r", 5)
+          .attr("r", r)
           .attr("cx", function(d, i) {return xscale(d.PageDensity);})
           .attr("cy", function(d, i) {return yscale(d.BookCount);})
-          .on("mouseover", function(){
-            d3.select(this)
-              .style("fill", "blue");
+          .on("mouseover", function(d) {
+              d3.select(this)
+                .style("fill", "blue")
+                .attr("r", rbig);
+              return tooltip
+                .style("visibility", "visible")
+                .style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px")
+                .text(function() {
+                  return d.Text + ": density=" + String(d.PageDensity) + ", bkcount=" + String(d.BookCount);
+                });
+          })
+          .on("mousemove", function(){
+            return tooltip;
           })
           .on("mouseout", function(){
-            d3.select(this)
-              .style("fill", "black");
+              d3.select(this)
+                .attr("r", r)
+                .style("fill", "black");
+              return tooltip.style("visibility", "hidden");
             })
 
-        viz.selectAll("text")
-          .data(data)
-          .enter().append("text")
-          //.style("stroke", "white")
-          .attr("x", function(d, i) {return xscale(d.PageDensity);})
-          .attr("y", function(d, i) {return yscale(d.BookCount);})
-          .attr("text-anchor", "left")
-          .text(function(d) {
-            return d.Text + ": " + String(d.PageDensity) + ", " + String(d.BookCount);
-          })
       }
 
     </script>

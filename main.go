@@ -14,11 +14,12 @@ import (
 )
 
 func main() {
-  fmt.Println("Starting http server...")
   indexHandler := staticFileHandler("index.html")
 
   http.HandleFunc("/", indexHandler)
   http.HandleFunc("/data/", dataHandlerGen())
+
+  fmt.Println("Starting http server...")
   err := http.ListenAndServe("0.0.0.0:8888", nil)
   if err != nil {
     fmt.Println(err)
@@ -35,13 +36,21 @@ func staticFileHandler(file_name string) func(http.ResponseWriter,
 }
 
 func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
-  words := loadWordData("/home/robert/grams2.csv", 150)
+  words := loadWordData("/home/robert/grams2.csv", 100)
   return func(w http.ResponseWriter, req *http.Request) {
+    path := req.URL.Path
+    num_words, _ := strconv.Atoi(strings.Split(path, "/data/")[1])
+    fmt.Println(path)
+    fmt.Println(num_words)
+
     data := make([]WordPageDensity, 0)
 
+    i := 0
     for _, word := range words {
       if word.Length() == 1 {continue}
       data = append(data, word.TotalPageDensityVsBooks())
+      if i == num_words {break}
+      i++
     }
 
     marshalled, err := json.Marshal(data)
@@ -67,6 +76,7 @@ func loadWordData(file_name string, max_words int) map[string] *Wordd {
 
   reader := bufio.NewReader(file)
   i := 0
+  oldWordText := ""
   for {
     line, _, err2 := reader.ReadLine()
     if err != nil {
@@ -98,7 +108,14 @@ func loadWordData(file_name string, max_words int) map[string] *Wordd {
 
     _, ok := words[wordText]
     if !ok {
+      if oldWordText != "" {
+        if words[oldWordText].TotalBooks() < 50000 {
+          delete(words, oldWordText)
+          i--
+        }
+      }
       i++
+      oldWordText = wordText
       if i == max_words {break}
       words[wordText] = NewWordd(wordText)
     }
