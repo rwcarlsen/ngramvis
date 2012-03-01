@@ -27,16 +27,15 @@ func main() {
 
 func staticFileHandler(file_name string) func(http.ResponseWriter,
                                                *http.Request) {
-  file_data, _ := ioutil.ReadFile(file_name)
-
   return func(w http.ResponseWriter, req *http.Request) {
     fmt.Println("New Request")
+    file_data, _ := ioutil.ReadFile(file_name)
     _, _ = w.Write(file_data)
   }
 }
 
 func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
-  words := loadWordData("/home/robert/grams2.csv")
+  words := loadWordData("/home/robert/grams2.csv", 150)
   return func(w http.ResponseWriter, req *http.Request) {
     data := make([]WordPageDensity, 0)
 
@@ -55,7 +54,7 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
   }
 }
 
-func loadWordData(file_name string) map[string] *Wordd {
+func loadWordData(file_name string, max_words int) map[string] *Wordd {
   alpha_only := true
   bad_chars := "1234567890~`!@#$%&:;*()+=/"
   var words = make(map[string] *Wordd)
@@ -67,9 +66,8 @@ func loadWordData(file_name string) map[string] *Wordd {
   }
 
   reader := bufio.NewReader(file)
-  max_words := 25
   i := 0
-  for i < max_words {
+  for {
     line, _, err2 := reader.ReadLine()
     if err != nil {
       fmt.Println("Error: ", err2)
@@ -100,8 +98,9 @@ func loadWordData(file_name string) map[string] *Wordd {
 
     _, ok := words[wordText]
     if !ok {
-      words[wordText] = NewWordd(wordText)
       i++
+      if i == max_words {break}
+      words[wordText] = NewWordd(wordText)
     }
     words[wordText].AddEntry(year, count, pageCount, bookCount)
   }

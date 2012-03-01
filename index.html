@@ -8,48 +8,63 @@
     <h1>Hello from Go!</h1>
     <div id="viz"></div>
     <script type="text/javascript">
-      var data;
 
       d3.json("/data", function(json) {
-        data = json;
-        renderVis();
+        var data = json;
+        renderVis(data);
       })
 
-    function renderVis() {
+      function renderVis(data) {
 
-      var h = 400;
-      var w = 400;
+        var h = "400px";
+        var w = "600px";
 
-      var x = d3.scale.linear()
-       .domain([0, d3.max(data, function(d) {return d.PageDensity;})])
-       .range([0, w])
-      var y = d3.scale.linear()
-       .domain([0, d3.max(data, function(d) {return d.BookCount;})])
-       .range([0, h])
+        bkmin = d3.min(data, function(d) {return d.BookCount;})
+        bkmax = d3.max(data, function(d) {return d.BookCount;})
 
-      var data = [50, 100, 150, 200];
-      var viz = d3.select("#viz")
-      .append("svg:svg")
-      .attr("width", x)
-      .attr("height", y);    
+        dmin = d3.min(data, function(d) {return d.PageDensity;})
+        dmax = d3.max(data, function(d) {return d.PageDensity;})
 
-      var circle = viz.selectAll("circle")
-      circle.data(data)
-        .enter().append("svg:circle")
-        .style("stroke", "black")
-        .style("fill", "black")
-        .attr("r", 10)
-        .attr("cy", function(d) {return d.BookCount;})
-        .attr("cx", function(d) {return d.PageDensity;})
-        .on("mouseover", function(){
-          d3.select(this)
-            .style("fill", "blue");
-        })
-        .on("mouseout", function(){
-          d3.select(this)
-            .style("fill", "black");
+        var xscale = d3.scale.linear()
+         .domain([dmin, dmax])
+         .range([0, w])
+        var yscale = d3.scale.linear()
+         .domain([bkmin, bkmax])
+         .range([h, 0])
+
+        var viz = d3.select("#viz")
+        .append("svg:svg")
+        .attr("width", w)
+        .attr("height", h);
+
+        var circle = viz.selectAll("circle")
+        circle.data(data)
+          .enter().append("svg:circle")
+          .style("stroke", "red")
+          .style("fill", "black")
+          .attr("r", 5)
+          .attr("cx", function(d, i) {return xscale(d.PageDensity);})
+          .attr("cy", function(d, i) {return yscale(d.BookCount);})
+          .on("mouseover", function(){
+            d3.select(this)
+              .style("fill", "blue");
           })
-    }
+          .on("mouseout", function(){
+            d3.select(this)
+              .style("fill", "black");
+            })
+
+        viz.selectAll("text")
+          .data(data)
+          .enter().append("text")
+          //.style("stroke", "white")
+          .attr("x", function(d, i) {return xscale(d.PageDensity);})
+          .attr("y", function(d, i) {return yscale(d.BookCount);})
+          .attr("text-anchor", "left")
+          .text(function(d) {
+            return d.Text + ": " + String(d.PageDensity) + ", " + String(d.BookCount);
+          })
+      }
 
     </script>
   </body>
