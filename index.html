@@ -8,25 +8,35 @@
     <div id="viz"></div>
     <script type="text/javascript">
 
-    var sampleSVG = d3.select("#viz")
-    .append("svg:svg")
-    .attr("width", 100)
-    .attr("height", 100);    
+      var h = 700;
+      var w = 400;
+      var data = [50, 100, 150, 200];
+      var viz = d3.select("#viz")
+      .append("svg:svg")
+      .attr("width", w)
+      .attr("height", h);    
 
-    sampleSVG.append("svg:circle")
-    .style("stroke", "gray")
-    .style("fill", "white")
-    .attr("r", 40)
-    .attr("cx", 50)
-    .attr("cy", 50)
-    .on("mouseover", function(){d3.select(this).style("fill", "aliceblue");})
-    .on("mouseout", function(){d3.select(this).style("fill", "white");})
-    .transition()
-    .delay(100)
-    .duration(1000)    
-    .attr("r", 10)
-    .attr("cx", 30)
-    .style("fill", "black");
+      var circle = viz.selectAll("circle")
+      circle.data(data)
+        .enter().append("svg:circle")
+        .style("stroke", "black")
+        .style("fill", "black")
+        .attr("r", 20)
+        .attr("cy", 100)
+        .on("mouseover", function(){
+          d3.select(this).style("fill", "blue")
+            .transition()
+            .delay(100)
+            .duration(1000)    
+            .attr("cy", Math.random() * h);
+        })
+        .on("mouseout", function(){
+          d3.select(this)
+            .style("fill", "black");
+          })
+
+      viz.selectAll("circle")
+        .attr("cx", function(d) {return d;})
 
     </script>
   </body>
