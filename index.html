@@ -29,16 +29,16 @@
       // render the data
       function renderVis() {
 
-        var h = 400;
-        var w = 600;
+        var h = 700;
+        var w = 1000;
         var r = 5;
         var rbig = 8;
 
-        bkmin = d3.min(data, function(d) {return d.BookCount;})
-        bkmax = d3.max(data, function(d) {return d.BookCount;})
+        bkmin = d3.min(data, function(d) {return d.Y;})
+        bkmax = d3.max(data, function(d) {return d.Y;})
 
-        dmin = d3.min(data, function(d) {return d.PageDensity;})
-        dmax = d3.max(data, function(d) {return d.PageDensity;})
+        dmin = d3.min(data, function(d) {return d.X;})
+        dmax = d3.max(data, function(d) {return d.X;})
 
         var xscale = d3.scale.linear()
          .domain([dmin, dmax])
@@ -58,8 +58,8 @@
           .style("stroke", "red")
           .style("fill", "black")
           .attr("r", r)
-          .attr("cx", function(d, i) {return xscale(d.PageDensity);})
-          .attr("cy", function(d, i) {return yscale(d.BookCount);})
+          .attr("cx", function(d, i) {return xscale(d.X);})
+          .attr("cy", function(d, i) {return yscale(d.Y);})
           .on("mouseover", function(d) {
               d3.select(this)
                 .style("fill", "blue")
@@ -68,7 +68,7 @@
                 .style("visibility", "visible")
                 .style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px")
                 .text(function() {
-                  return d.Text + ": density=" + String(d.PageDensity) + ", bkcount=" + String(d.BookCount);
+                  return d.Word + ": density=" + String(d.X) + ", bkcount=" + String(d.Y);
                 });
           })
           .on("mousemove", function(){

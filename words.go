@@ -2,71 +2,17 @@
 package main
 
 import (
-  "io/ioutil"
+  "os"
+  "bufio"
   "strconv"
   "strings"
   "fmt"
-  "os"
-  "bufio"
-  gosql "github.com/kuroneko/gosqlite3"
-  "net/http"
-  "encoding/json"
 )
 
-func main() {
-  indexHandler := staticFileHandler("index.html")
-
-  http.HandleFunc("/", indexHandler)
-  http.HandleFunc("/data/", dataHandlerGen())
-
-  fmt.Println("Starting http server...")
-  err := http.ListenAndServe("0.0.0.0:8888", nil)
-  if err != nil {
-    fmt.Println(err)
-  }
-}
-
-func staticFileHandler(file_name string) func(http.ResponseWriter,
-                                               *http.Request) {
-  return func(w http.ResponseWriter, req *http.Request) {
-    fmt.Println("New Request")
-    file_data, _ := ioutil.ReadFile(file_name)
-    _, _ = w.Write(file_data)
-  }
-}
-
-func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
-  words := loadWordData("/home/robert/grams2.csv", 100)
-  return func(w http.ResponseWriter, req *http.Request) {
-    path := req.URL.Path
-    num_words, _ := strconv.Atoi(strings.Split(path, "/data/")[1])
-    fmt.Println(path)
-    fmt.Println(num_words)
-
-    data := make([]WordPageDensity, 0)
-
-    i := 0
-    for _, word := range words {
-      if word.Length() == 1 {continue}
-      data = append(data, word.TotalPageDensityVsBooks())
-      if i == num_words {break}
-      i++
-    }
-
-    marshalled, err := json.Marshal(data)
-    if err != nil {
-      fmt.Println("Error: ", err)
-      return
-    }
-
-    _, _ = w.Write(marshalled)
-  }
-}
-
-func loadWordData(file_name string, max_words int) map[string] *Wordd {
+func loadWordData(file_name string, max_words int) map[string] *Word {
   alpha_only := true
   bad_chars := "1234567890~`!@#$%&:;*()+=/"
-  var words = make(map[string] *Wordd)
+  var words = make(map[string] *Word)
 
   file, err := os.Open(file_name)
   if err != nil {
@@ -117,14 +63,20 @@ func loadWordData(file_name string, max_words int) map[string] *Wordd {
       i++
       oldWordText = wordText
       if i == max_words {break}
-      words[wordText] = NewWordd(wordText)
+      words[wordText] = NewWord(wordText)
     }
     words[wordText].AddEntry(year, count, pageCount, bookCount)
   }
   return words
 }
 
-type Wordd struct {
+type XYonly struct {
+  Word string
+  X float32
+  Y int
+}
+
+type Word struct {
   Text string
   Counts map[string] Entry
 }
@@ -136,37 +88,29 @@ type Entry struct {
   BookCount int
 }
 
-func NewWordd(text string) *Wordd {
-  wordd := Wordd{Text:text}
+func NewWord(text string) *Word {
+  wordd := Word{Text:text}
   wordd.Counts = make(map[string] Entry)
   return &wordd
 }
 
-type WordPageDensity struct {
-  Text string
-  Count int
-  BookCount int
-  PageDensity float32
+func (w *Word) TotalPageDensityVsBooks() XYonly {
+  return XYonly{w.Text, w.TotalPageDensity(), w.TotalBooks()}
 }
 
-func (w *Wordd) TotalPageDensityVsBooks() WordPageDensity {
-  return WordPageDensity{w.Text, w.TotalCount(), w.TotalBooks(),
-    w.TotalPageDensity()}
-}
-
-func (w *Wordd) Length() int {
+func (w *Word) Length() int {
   return len(w.Text)
 }
 
-func (w *Wordd) AddEntry(year, count, pageCount, bookCount int) {
+func (w *Word) AddEntry(year, count, pageCount, bookCount int) {
   w.Counts[strconv.Itoa(year)] = Entry {year, count, pageCount, bookCount}
 }
 
-func (w *Wordd) TotalPageDensity() float32 {
+func (w *Word) TotalPageDensity() float32 {
   return float32(w.TotalCount()) / float32(w.TotalPages())
 }
 
-func (w *Wordd) PageDensity(year int) float32 {
+func (w *Word) PageDensity(year int) float32 {
   styear := strconv.Itoa(year)
 
   _, ok := w.Counts[styear]
@@ -175,7 +119,7 @@ func (w *Wordd) PageDensity(year int) float32 {
   return float32(w.Counts[styear].Count) / float32(w.Counts[styear].PageCount)
 }
 
-func (w *Wordd) String() string {
+func (w *Word) String() string {
   str := w.Text
   str += " {BookCount = " + strconv.Itoa(w.TotalBooks())
   str += ", PageCount = " + strconv.Itoa(w.TotalPages())
@@ -186,7 +130,7 @@ func (w *Wordd) String() string {
   return str
 }
 
-func (w *Wordd) TotalCount() int {
+func (w *Word) TotalCount() int {
   total := 0
   for _, entry := range w.Counts {
     total += entry.Count
@@ -194,7 +138,7 @@ func (w *Wordd) TotalCount() int {
   return total
 }
 
-func (w *Wordd) TotalPages() int {
+func (w *Word) TotalPages() int {
   total := 0
   for _, entry := range w.Counts {
     total += entry.PageCount
@@ -202,16 +146,11 @@ func (w *Wordd) TotalPages() int {
   return total
 }
 
-func (w *Wordd) TotalBooks() int {
+func (w *Word) TotalBooks() int {
   total := 0
   for _, entry := range w.Counts {
     total += entry.BookCount
   }
   return total
-}
-
-func loadSqliteData() {
-  db, _ := gosql.Open("/home/robert/cycout/cyclus.sqlite")
-  fmt.Println(db)
 }
 
