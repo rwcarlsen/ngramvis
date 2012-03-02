@@ -37,21 +37,29 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
   words := UnmarshalJsonList("/home/robert/ngrams/word-list.json")
   return func(w http.ResponseWriter, req *http.Request) {
     path := req.URL.Path
-    num_words, err := strconv.Atoi(strings.Split(path, "/data/")[1])
+
+    rangeText := strings.Split(path, "/")
+    lower, err := strconv.Atoi(rangeText[2])
+    upper, err2 := strconv.Atoi(rangeText[3])
+
     if err != nil {
       fmt.Println("Error: ", err)
       return
+    } else if err2 != nil {
+      fmt.Println("Error: ", err2)
+      return
     }
 
-    fmt.Println("Json Request for ", num_words, " words.")
+    if upper - 1 > len(words) {upper = len(words) - 1}
 
-    data := make([]XYonly, num_words)
+    fmt.Println("Json Request for words", lower, " through ",  upper)
+
+    data := make([]XYonly, upper - lower)
 
     fmt.Println("there are ", len(words), " words.")
     count := 0
-    for _, word := range words {
-      data[count] = word.TotPgDenBkCnt()
-      if count == num_words - 1 {break}
+    for i := lower; i < upper; i++ {
+      data[count] = words[i].TotPgDenBkCnt()
       count++
     }
 
