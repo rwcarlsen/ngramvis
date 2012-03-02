@@ -21,7 +21,8 @@
 
       // load external word data
       var data;
-      d3.json("/data/100", function(json) {
+      var num_datums = 2000
+      d3.json("/data/" + num_datums, function(json) {
         data = json;
         renderVis();
       })
@@ -34,16 +35,16 @@
         var r = 5;
         var rbig = 8;
 
-        bkmin = d3.min(data, function(d) {return d.Y;})
+        bkmin = 10000
         bkmax = d3.max(data, function(d) {return d.Y;})
 
         dmin = d3.min(data, function(d) {return d.X;})
         dmax = d3.max(data, function(d) {return d.X;})
 
-        var xscale = d3.scale.linear()
+        var xscale = d3.scale.log()
          .domain([dmin, dmax])
          .range([0+r, w-10])
-        var yscale = d3.scale.linear()
+        var yscale = d3.scale.log()
          .domain([bkmin, bkmax])
          .range([h-10, 0+r])
 

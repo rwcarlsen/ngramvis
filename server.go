@@ -34,32 +34,30 @@ func staticFileHandler(file_name string) func(http.ResponseWriter,
 }
 
 func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
-  words := loadWordData("/home/robert/grams2.csv", 100)
+  words := UnmarshalJson("good-words.json")
   return func(w http.ResponseWriter, req *http.Request) {
     path := req.URL.Path
     num_words, _ := strconv.Atoi(strings.Split(path, "/data/")[1])
-    fmt.Println(path)
-    fmt.Println(num_words)
+    fmt.Println("Json Request for ", num_words, " words...")
 
     data := make([]XYonly, 0)
 
     i := 0
     for _, word := range words {
-      if word.Length() == 1 {continue}
-      data = append(data, word.TotalPageDensityVsBooks())
+      data = append(data, word.TotPgDenBkCnt())
       if i == num_words {break}
       i++
     }
 
-    marshalled, err := json.Marshal(data)
+    fmt.Println("  Words loaded. Marshaling...")
+    marshaled, err := json.Marshal(data)
     if err != nil {
       fmt.Println("Error: ", err)
       return
     }
-
-    //ioutil.WriteFile("testout.json")
-
-    _, _ = w.Write(marshalled)
+    fmt.Println("  Marshaling complete. Sending json data...")
+    _, _ = w.Write(marshaled)
+    fmt.Println("  Request fulfilled.")
   }
 }
 

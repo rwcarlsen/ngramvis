@@ -7,29 +7,67 @@ import (
   "strconv"
   "strings"
   "fmt"
+  "encoding/json"
+  "io/ioutil"
 )
+func MarshalJson(file_name string, words map[string] *Word) {
+  marshaled, err := json.Marshal(words)
+  if err != nil {
+    fmt.Println("Error: ", err)
+    return
+  }
 
-func loadWordData(file_name string, max_words int) map[string] *Word {
+  err = ioutil.WriteFile(file_name, marshaled, os.ModePerm)
+  if err != nil {
+    fmt.Println("Error: ", err)
+  }
+}
+
+func UnmarshalJson(file_name string) (words map[string] *Word) {
+  data, err := ioutil.ReadFile(file_name)
+  if err != nil {
+    fmt.Println("Error: ", err)
+    return
+  }
+
+  err = json.Unmarshal(data, &words)
+  if err != nil {
+    fmt.Println("Error: ", err)
+    return
+  }
+
+  return
+}
+
+func CleanupRawWords(file_name string, max_words int) map[string] *Word {
   alpha_only := true
-  bad_chars := "1234567890~`!@#$%&:;*()+=/"
+  bad_chars := "1234567890~`!@#$%&:;*()+=/-[]{}|\\\"^"
+  book_cutoff := 10000
+  count_cutoff := 10000
+
   var words = make(map[string] *Word)
 
+  // open file and check for errors
   file, err := os.Open(file_name)
   if err != nil {
     fmt.Println("Error: ", err)
     return words
   }
+  defer file.Close()
 
   reader := bufio.NewReader(file)
   i := 0
   oldWordText := ""
   for {
     line, _, err2 := reader.ReadLine()
-    if err != nil {
-      fmt.Println("Error: ", err2)
+    if err2 != nil {
+      fmt.Println(err2)
       break
     }
+
     pieces := strings.Split(string(line), "\t")
+    // skip this word if it doesn't have proper number of fields
+    if len(pieces) != 5 {continue}
 
     wordText := strings.ToLower(pieces[0])
 
@@ -42,9 +80,7 @@ func loadWordData(file_name string, max_words int) map[string] *Word {
           break
         }
       }
-      if bad {
-        continue
-      }
+      if bad {continue}
     }
 
     year, _ := strconv.Atoi(pieces[1])
@@ -53,18 +89,22 @@ func loadWordData(file_name string, max_words int) map[string] *Word {
     bookCount, _ := strconv.Atoi(pieces[4])
 
     _, ok := words[wordText]
-    if !ok {
+    if !ok { // word is not already in list
       if oldWordText != "" {
-        if words[oldWordText].TotalBooks() < 50000 {
+        // remove word if it has too low statistics
+        if words[oldWordText].TotalBooks() < book_cutoff ||
+           words[oldWordText].TotalCount() < count_cutoff {
           delete(words, oldWordText)
           i--
         }
       }
+
       i++
       oldWordText = wordText
       if i == max_words {break}
       words[wordText] = NewWord(wordText)
     }
+
     words[wordText].AddEntry(year, count, pageCount, bookCount)
   }
   return words
@@ -94,7 +134,8 @@ func NewWord(text string) *Word {
   return &wordd
 }
 
-func (w *Word) TotalPageDensityVsBooks() XYonly {
+// total page density vs. book count
+func (w *Word) TotPgDenBkCnt() XYonly {
   return XYonly{w.Text, w.TotalPageDensity(), w.TotalBooks()}
 }
 
