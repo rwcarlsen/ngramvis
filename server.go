@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+
   indexHandler := staticFileHandler("index.html")
 
   http.HandleFunc("/", indexHandler)
@@ -34,22 +35,31 @@ func staticFileHandler(file_name string) func(http.ResponseWriter,
 }
 
 func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
-  words := UnmarshalJson("good-words.json")
+  words := UnmarshalJson("word-list.json")
   return func(w http.ResponseWriter, req *http.Request) {
     path := req.URL.Path
-    num_words, _ := strconv.Atoi(strings.Split(path, "/data/")[1])
-    fmt.Println("Json Request for ", num_words, " words...")
-
-    data := make([]XYonly, 0)
-
-    i := 0
-    for _, word := range words {
-      data = append(data, word.TotPgDenBkCnt())
-      if i == num_words {break}
-      i++
+    num_words, err := strconv.Atoi(strings.Split(path, "/data/")[1])
+    if err != nil {
+      fmt.Println("Error: ", err)
+      return
     }
 
-    fmt.Println("  Words loaded. Marshaling...")
+    fmt.Println("Json Request for ", num_words, " words. Preping words...")
+
+    data := make([]XYonly, num_words)
+
+    fmt.Println("there are ", len(words), " words.")
+    count := 0
+    for _, word := range words {
+      if word.TotalBooks() < 10000 {continue}
+      data[count] = word.TotPgDenBkCnt()
+      if count == num_words - 1 {break}
+      count++
+    }
+
+    fmt.Println("there are ", len(data), " datums ready.")
+
+    fmt.Println("  Words prepared. Marshaling...")
     marshaled, err := json.Marshal(data)
     if err != nil {
       fmt.Println("Error: ", err)

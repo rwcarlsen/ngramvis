@@ -6,18 +6,18 @@
   </head>
   <body>
     <h1>Hello from Go!</h1>
+    <div id="tooltip"></div>
     <div id="viz"></div>
     <script type="text/javascript">
 
-
       // tooltip stuff:
-      var tooltip = d3.select("body")
-        .append("div")
+      var tooltip = d3.select("#tooltip")
         .style("position", "absolute")
+        .style("color", "green")
         .style("background-color", "lightgrey")
-        .style("z-index", "10")
+        .style("font-size", "20")
+        .style("font-weight", "bold")
         .style("visibility", "hidden")
-        .text("a simple tooltip");
 
       // load external word data
       var data;
@@ -30,9 +30,10 @@
       // render the data
       function renderVis() {
 
-        var h = 700;
-        var w = 1000;
-        var r = 5;
+        var h = 750;
+        var w = 1200;
+        var pad = 100
+        var r = 4;
         var rbig = 8;
 
         bkmin = 10000
@@ -43,10 +44,10 @@
 
         var xscale = d3.scale.log()
          .domain([dmin, dmax])
-         .range([0+r, w-10])
+         .range([0+pad, w-pad])
         var yscale = d3.scale.log()
          .domain([bkmin, bkmax])
-         .range([h-10, 0+r])
+         .range([h-pad, 0+pad])
 
         var viz = d3.select("#viz")
         .append("svg:svg")
@@ -67,9 +68,9 @@
                 .attr("r", rbig);
               return tooltip
                 .style("visibility", "visible")
-                .style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px")
+                .style("top", event.pageY+"px").style("left",(event.pageX+15)+"px")
                 .text(function() {
-                  return d.Word + ": density=" + String(d.X) + ", bkcount=" + String(d.Y);
+                  return d.Word + " : den=" + String(d.X) + ", #bks=" + String(d.Y);
                 });
           })
           .on("mousemove", function(){

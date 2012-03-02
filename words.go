@@ -10,7 +10,7 @@ import (
   "encoding/json"
   "io/ioutil"
 )
-func MarshalJson(file_name string, words map[string] *Word) {
+func MarshalJson(file_name string, words []*Word) {
   marshaled, err := json.Marshal(words)
   if err != nil {
     fmt.Println("Error: ", err)
@@ -23,7 +23,7 @@ func MarshalJson(file_name string, words map[string] *Word) {
   }
 }
 
-func UnmarshalJson(file_name string) (words map[string] *Word) {
+func UnmarshalJson(file_name string) (words []*Word) {
   data, err := ioutil.ReadFile(file_name)
   if err != nil {
     fmt.Println("Error: ", err)
