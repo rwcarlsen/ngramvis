@@ -33,6 +33,17 @@ Goals
 Milestones
 ----------
 
+* Week 2 (March 9) - We will have completed a simple, web-based visualization 
+  with D3 using a dummy dataset and featuring little interactivity.
+
+* Week 3 (March 16) - We will have incorporated the Google dataset and will 
+  have a plan for addressing the scaling issue.
+
+* Week 4 (March 23) - We will have designed and mostly implemented some level 
+  of interactivity.
+
+* Week 5 (March 30) - Have completed the tool, as well as a write-up about the 
+  process/result.
 
 Outcomes/Deliverables
 ---------------------
@@ -45,10 +56,15 @@ Outcomes/Deliverables
 
 * Some sort of assessment of the "goodness" of our design with respect to
   more traditional designs.  Perhaps qualitative, perhaps empirical.
+  
+* A 2-4 page paper outlining and evaluating our implementation and its design, 
+  as well as documenting the process.
 
 
 Resources
 ---------
+
+* Google n-grams dataset (1-grams only)
 
 * D3 javascript toolkit
 
@@ -63,5 +79,10 @@ Resources
 Evaluation Plan
 ---------------
 
-* 
+The main thing we will judge ourselves on will be the efficiency and usefulness 
+of web-based scaling approach. Our goal is to have a tool that loads quickly on 
+a web-browser and allows the user to dynamically interact with the (very) large 
+dataset. Another evaluation criteria will be the usefulness of our actual design, 
+and whether or not it highlights interesting words or relationships between words. 
+However, this criteria is secondary.
 
