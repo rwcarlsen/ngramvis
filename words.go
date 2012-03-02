@@ -10,7 +10,8 @@ import (
   "encoding/json"
   "io/ioutil"
 )
-func MarshalJson(file_name string, words []*Word) {
+
+func MarshalJsonMap(file_name string, words map[string]*Word) {
   marshaled, err := json.Marshal(words)
   if err != nil {
     fmt.Println("Error: ", err)
@@ -23,7 +24,44 @@ func MarshalJson(file_name string, words []*Word) {
   }
 }
 
-func UnmarshalJson(file_name string) (words []*Word) {
+func MarshalJsonList(file_name string, words map[string]*Word) {
+  wordList := make([]*Word, len(words))
+
+  count := 0
+  for _, word := range words {
+    wordList[count] = word
+    count++
+  }
+
+  marshaled, err := json.Marshal(wordList)
+  if err != nil {
+    fmt.Println("Error: ", err)
+    return
+  }
+
+  err = ioutil.WriteFile(file_name, marshaled, os.ModePerm)
+  if err != nil {
+    fmt.Println("Error: ", err)
+  }
+}
+
+func UnmarshalJsonList(file_name string) (words []*Word) {
+  data, err := ioutil.ReadFile(file_name)
+  if err != nil {
+    fmt.Println("Error: ", err)
+    return
+  }
+
+  err = json.Unmarshal(data, &words)
+  if err != nil {
+    fmt.Println("Error: ", err)
+    return
+  }
+
+  return
+}
+
+func UnmarshalJsonMap(file_name string) (words map[string]*Word) {
   data, err := ioutil.ReadFile(file_name)
   if err != nil {
     fmt.Println("Error: ", err)
@@ -42,8 +80,7 @@ func UnmarshalJson(file_name string) (words []*Word) {
 func CleanupRawWords(file_name string, max_words int) map[string] *Word {
   alpha_only := true
   bad_chars := "1234567890~`!@#$%&:;*()+=/-[]{}|\\\"^"
-  book_cutoff := 10000
-  count_cutoff := 10000
+  count_cutoff := 100
 
   var words = make(map[string] *Word)
 
@@ -92,8 +129,7 @@ func CleanupRawWords(file_name string, max_words int) map[string] *Word {
     if !ok { // word is not already in list
       if oldWordText != "" {
         // remove word if it has too low statistics
-        if words[oldWordText].TotalBooks() < book_cutoff ||
-           words[oldWordText].TotalCount() < count_cutoff {
+        if words[oldWordText].TotalCount() < count_cutoff {
           delete(words, oldWordText)
           i--
         }

@@ -21,7 +21,7 @@
 
       // load external word data
       var data;
-      var num_datums = 2000
+      var num_datums = 5000
       d3.json("/data/" + num_datums, function(json) {
         data = json;
         renderVis();
@@ -33,7 +33,7 @@
         var h = 750;
         var w = 1200;
         var pad = 100
-        var r = 4;
+        var r = 3;
         var rbig = 8;
 
         bkmin = 10000
