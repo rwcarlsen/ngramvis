@@ -11,10 +11,6 @@ import (
 )
 
 func main() {
-
-  indexHandler := staticFileHandler("index.html")
-  vizScriptHandler := staticFileHandler("viz.js")
-
   http.HandleFunc("/viz", indexHandler)
   http.HandleFunc("/viz/viz.js", vizScriptHandler)
   http.HandleFunc("/data/", dataHandlerGen())
@@ -26,13 +22,17 @@ func main() {
   }
 }
 
-func staticFileHandler(file_name string) func(http.ResponseWriter,
-                                               *http.Request) {
-  return func(w http.ResponseWriter, req *http.Request) {
-    fmt.Println("New Request")
+func indexHandler(w http.ResponseWriter, req *http.Request) {
+    file_name := "index.html"
     file_data, _ := ioutil.ReadFile(file_name)
     _, _ = w.Write(file_data)
-  }
+}
+
+func vizScriptHandler(w http.ResponseWriter, req *http.Request) {
+    file_name := "viz.js"
+    file_data, _ := ioutil.ReadFile(file_name)
+    w.Header().Set("Content-Type", "text/javascript")
+    _, _ = w.Write(file_data)
 }
 
 func dataHandlerGen() func(http.ResponseWriter, *http.Request) {

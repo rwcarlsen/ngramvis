@@ -6,7 +6,7 @@ var r = 3;
 var rbig = 8;
 
 var data = [];
-var num_datums = 2000;
+var num_datums = 2500;
 var chunk_size = 500;
 
 // tooltip stuff:
