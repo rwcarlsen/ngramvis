@@ -3,7 +3,7 @@ serve: server.go words.go
 
 	go build -o serve server.go words.go
 
-run:
+run: serve
 
 	./serve
 

@@ -13,8 +13,10 @@ import (
 func main() {
 
   indexHandler := staticFileHandler("index.html")
+  vizScriptHandler := staticFileHandler("viz.js")
 
   http.HandleFunc("/viz", indexHandler)
+  http.HandleFunc("/viz/viz.js", vizScriptHandler)
   http.HandleFunc("/data/", dataHandlerGen())
 
   fmt.Println("Starting http server...")
@@ -40,7 +42,7 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
 
     rangeText := strings.Split(path, "/")
     lower, err := strconv.Atoi(rangeText[2])
-    upper, err2 := strconv.Atoi(rangeText[3])
+    numWanted, err2 := strconv.Atoi(rangeText[3])
 
     if err != nil {
       fmt.Println("Error: ", err)
@@ -49,12 +51,13 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       fmt.Println("Error: ", err2)
       return
     }
+    upper := numWanted + lower
 
     if upper - 1 > len(words) {upper = len(words) - 1}
 
     fmt.Println("Json Request for words", lower, " through ",  upper)
 
-    data := make([]XYonly, upper - lower)
+    data := make([]XYonly, numWanted)
 
     fmt.Println("there are ", len(words), " words.")
     count := 0
