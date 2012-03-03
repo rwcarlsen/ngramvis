@@ -1,3 +1,14 @@
+// global variables
+var h = 750;
+var w = 1200;
+var pad = 100
+var r = 3;
+var rbig = 8;
+
+var data = [];
+var num_datums = 2000;
+var chunk_size = 500;
+
 // tooltip stuff:
 var tooltip = d3.select("#tooltip")
   .style("position", "absolute")
@@ -7,30 +18,22 @@ var tooltip = d3.select("#tooltip")
   .style("font-weight", "bold")
   .style("visibility", "hidden")
 
-// load external word data
-var data = [];
-var num_datums = 100;
+// create svg drawing board
+var viz = d3.select("#viz")
+  .append("svg:svg")
+  .attr("width", w)
+  .attr("height", h);
 
-var max_iter = 25;
-var count = 0;
-while(data.length < num_datums) {
-  d3.json("/data/" + data.length + "/" + 10, function(json) {
-    data = data.concat(json);
-    renderVis();
-  })
-  if (count == max_iter) {break;}
-  count++
+// load external word data - note asynchrous behavior (parallel requests)
+for (i = 0; i < num_datums; i += chunk_size) {
+  if (i > num_datums) {i = num_datums;}
+  d3.json("/data/" + i + "/" + chunk_size, function(json) {renderVis(json);});
 }
 
-// render the data
-function renderVis() {
+function renderVis(newdata) {
+  data = data.concat(newdata)
 
-  var h = 750;
-  var w = 1200;
-  var pad = 100
-  var r = 3;
-  var rbig = 8;
-
+  // calc max/min and calibrate axis scales
   bkmin = 10000
   bkmax = d3.max(data, function(d) {return d.Y;})
 
@@ -44,12 +47,14 @@ function renderVis() {
    .domain([bkmin, bkmax])
    .range([h-pad, 0+pad])
 
-  var viz = d3.select("#viz")
-  .append("svg:svg")
-  .attr("width", w)
-  .attr("height", h);
-
   var circle = viz.selectAll("circle")
+
+  // update existing circles to updated scales
+  circle
+    .attr("cx", function(d, i) {return xscale(d.X);})
+    .attr("cy", function(d, i) {return yscale(d.Y);})
+
+  // add new circles
   circle.data(data)
     .enter().append("svg:circle")
     .style("stroke", "red")
