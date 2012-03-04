@@ -1,9 +1,9 @@
 // global variables
 var h = 750;
 var w = 1200;
-var pad = 100
 var r = 3;
 var rbig = 8;
+var pad = rbig + 10
 
 var data = [];
 var num_datums = 2500;
@@ -34,7 +34,7 @@ function renderVis(newdata) {
   data = data.concat(newdata)
 
   // calc max/min and calibrate axis scales
-  bkmin = 10000
+  bkmin = d3.min(data, function(d) {return d.Y;})
   bkmax = d3.max(data, function(d) {return d.Y;})
 
   dmin = d3.min(data, function(d) {return d.X;})
@@ -70,7 +70,7 @@ function renderVis(newdata) {
           .style("visibility", "visible")
           .style("top", event.pageY+"px").style("left",(event.pageX+15)+"px")
           .text(function() {
-            return d.Word + " : den=" + String(d.X) + ", #bks=" + String(d.Y);
+            return d.W + " : den=" + String(d.X) + ", #bks=" + String(d.Y);
           });
     })
     .on("mousemove", function(){

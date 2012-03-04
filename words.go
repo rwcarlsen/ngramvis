@@ -11,19 +11,6 @@ import (
   "io/ioutil"
 )
 
-func MarshalJsonMap(file_name string, words map[string]*Word) {
-  marshaled, err := json.Marshal(words)
-  if err != nil {
-    fmt.Println("Error: ", err)
-    return
-  }
-
-  err = ioutil.WriteFile(file_name, marshaled, os.ModePerm)
-  if err != nil {
-    fmt.Println("Error: ", err)
-  }
-}
-
 func MarshalJsonList(file_name string, words map[string]*Word) {
   wordList := make([]*Word, len(words))
 
@@ -61,6 +48,19 @@ func UnmarshalJsonList(file_name string) (words []*Word) {
   return
 }
 
+func MarshalJsonMap(file_name string, words map[string]*Word) {
+  marshaled, err := json.Marshal(words)
+  if err != nil {
+    fmt.Println("Error: ", err)
+    return
+  }
+
+  err = ioutil.WriteFile(file_name, marshaled, os.ModePerm)
+  if err != nil {
+    fmt.Println("Error: ", err)
+  }
+}
+
 func UnmarshalJsonMap(file_name string) (words map[string]*Word) {
   data, err := ioutil.ReadFile(file_name)
   if err != nil {
@@ -77,10 +77,11 @@ func UnmarshalJsonMap(file_name string) (words map[string]*Word) {
   return
 }
 
-func CleanupRawWords(file_name string, max_words int) map[string] *Word {
+func CleanupRawWords(file_name string) map[string] *Word {
   alpha_only := true
   bad_chars := "1234567890~`!@#$%&:;*()+=/-[]{}|\\\"^"
   count_cutoff := 100
+  dump_freq := 25000
 
   var words = make(map[string] *Word)
 
@@ -94,6 +95,7 @@ func CleanupRawWords(file_name string, max_words int) map[string] *Word {
 
   reader := bufio.NewReader(file)
   i := 0
+  dump_count := 1
   oldWordText := ""
   for {
     line, _, err2 := reader.ReadLine()
@@ -135,52 +137,59 @@ func CleanupRawWords(file_name string, max_words int) map[string] *Word {
         }
       }
 
+      if i > dump_freq {
+        MarshalJsonList("clean" + strconv.Itoa(dump_count), words)
+        words = make(map[string] *Word)
+        i = 0
+        dump_count++
+      }
+
       i++
       oldWordText = wordText
-      if i == max_words {break}
       words[wordText] = NewWord(wordText)
     }
-
     words[wordText].AddEntry(year, count, pageCount, bookCount)
   }
+
+  MarshalJsonList("clean" + strconv.Itoa(dump_count) + ".json", words)
   return words
 }
 
 type XYonly struct {
-  Word string
-  X float32
-  Y int
+  W string // word text
+  X float32 // x coordinate
+  Y int // y coordinate
 }
 
 type Word struct {
-  Text string
-  Counts map[string] Entry
+  T string // word text
+  C map[string] Entry // yearly count entries
 }
 
 type Entry struct {
-  Year int
-  Count int
-  PageCount int
-  BookCount int
+  Y int // year of count
+  W int // word count
+  P int // page count
+  B int // book count
 }
 
 func NewWord(text string) *Word {
-  wordd := Word{Text:text}
-  wordd.Counts = make(map[string] Entry)
-  return &wordd
+  word := Word{T:text}
+  word.C = make(map[string] Entry)
+  return &word
 }
 
 // total page density vs. book count
 func (w *Word) TotPgDenBkCnt() XYonly {
-  return XYonly{w.Text, w.TotalPageDensity(), w.TotalBooks()}
+  return XYonly{w.T, w.TotalPageDensity(), w.TotalBooks()}
 }
 
 func (w *Word) Length() int {
-  return len(w.Text)
+  return len(w.T)
 }
 
 func (w *Word) AddEntry(year, count, pageCount, bookCount int) {
-  w.Counts[strconv.Itoa(year)] = Entry {year, count, pageCount, bookCount}
+  w.C[strconv.Itoa(year)] = Entry {year, count, pageCount, bookCount}
 }
 
 func (w *Word) TotalPageDensity() float32 {
@@ -190,43 +199,41 @@ func (w *Word) TotalPageDensity() float32 {
 func (w *Word) PageDensity(year int) float32 {
   styear := strconv.Itoa(year)
 
-  _, ok := w.Counts[styear]
+  _, ok := w.C[styear]
   if !ok {return -1}
 
-  return float32(w.Counts[styear].Count) / float32(w.Counts[styear].PageCount)
+  return float32(w.C[styear].W) / float32(w.C[styear].P)
 }
 
 func (w *Word) String() string {
-  str := w.Text
+  str := w.T
   str += " {BookCount = " + strconv.Itoa(w.TotalBooks())
   str += ", PageCount = " + strconv.Itoa(w.TotalPages())
   str += ", Count = " + strconv.Itoa(w.TotalCount())
-  str += ", PageDensity = " +
-    strconv.FormatFloat(float64(w.TotalPageDensity()), 'f', 2, 32)
   str+= "}"
   return str
 }
 
 func (w *Word) TotalCount() int {
   total := 0
-  for _, entry := range w.Counts {
-    total += entry.Count
+  for _, entry := range w.C {
+    total += entry.W
   }
   return total
 }
 
 func (w *Word) TotalPages() int {
   total := 0
-  for _, entry := range w.Counts {
-    total += entry.PageCount
+  for _, entry := range w.C {
+    total += entry.P
   }
   return total
 }
 
 func (w *Word) TotalBooks() int {
   total := 0
-  for _, entry := range w.Counts {
-    total += entry.BookCount
+  for _, entry := range w.C {
+    total += entry.B
   }
   return total
 }

@@ -36,7 +36,7 @@ func vizScriptHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
-  words := UnmarshalJsonList("/home/robert/ngrams/word-list.json")
+  words := UnmarshalJsonList("/home/robert/ngrams/clean1.json")
   return func(w http.ResponseWriter, req *http.Request) {
     path := req.URL.Path
 
@@ -59,7 +59,6 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
 
     data := make([]XYonly, numWanted)
 
-    fmt.Println("there are ", len(words), " words.")
     count := 0
     for i := lower; i < upper; i++ {
       data[count] = words[i].TotPgDenBkCnt()
