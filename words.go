@@ -6,16 +6,18 @@ import (
   "bufio"
   "strconv"
   "strings"
-  "fmt"
   "encoding/json"
   "io/ioutil"
+  "launchpad.net/mgo"
 )
 
 const (
-  alpha_only = true // include/exclude words with non-alpha chars
-  bad_chars = "1234567890~`!@#$%&:;*()+=/-[]{}|\\\"^" // chars that constitute excluded words
-  count_cutoff = 100 // words with lower counts are excluded
-  dump_freq = 25000 // word limit at which memory to file dump is performed
+  alphaOnly = true // include/exclude words with non-alpha chars
+  badChars = "1234567890~`!@#$%&:;*()+=/-[]{}|\\\"^" // chars that constitute excluded words
+  countCutoff = 100 // words with lower counts are excluded
+  dbServer = "localhost"
+  dbName = "ngrams"
+  collecName = "words"
 )
 
 func MarshalJsonList(file_name string, words map[string]*Word) {
@@ -29,27 +31,24 @@ func MarshalJsonList(file_name string, words map[string]*Word) {
 
   marshaled, err := json.Marshal(wordList)
   if err != nil {
-    fmt.Println("Error: ", err)
-    return
+    panic(err)
   }
 
   err = ioutil.WriteFile(file_name, marshaled, os.ModePerm)
   if err != nil {
-    fmt.Println("Error: ", err)
+    panic(err)
   }
 }
 
 func UnmarshalJsonList(file_name string) (words []*Word) {
   data, err := ioutil.ReadFile(file_name)
   if err != nil {
-    fmt.Println("Error: ", err)
-    return
+    panic(err)
   }
 
   err = json.Unmarshal(data, &words)
   if err != nil {
-    fmt.Println("Error: ", err)
-    return
+    panic(err)
   }
 
   return
@@ -58,65 +57,74 @@ func UnmarshalJsonList(file_name string) (words []*Word) {
 func MarshalJsonMap(file_name string, words map[string]*Word) {
   marshaled, err := json.Marshal(words)
   if err != nil {
-    fmt.Println("Error: ", err)
-    return
+    panic(err)
   }
 
   err = ioutil.WriteFile(file_name, marshaled, os.ModePerm)
   if err != nil {
-    fmt.Println("Error: ", err)
+    panic(err)
   }
 }
 
 func UnmarshalJsonMap(file_name string) (words map[string]*Word) {
   data, err := ioutil.ReadFile(file_name)
   if err != nil {
-    fmt.Println("Error: ", err)
-    return
+    panic(err)
   }
 
   err = json.Unmarshal(data, &words)
   if err != nil {
-    fmt.Println("Error: ", err)
-    return
+    panic(err)
   }
 
   return
 }
 
-func CleanupRawWords(file_name string) map[string] *Word {
-  var words = make(map[string] *Word)
-
+func CleanupRawWords(file_name string) {
   // open file and check for errors
   file, err := os.Open(file_name)
   if err != nil {
-    fmt.Println("Error: ", err)
-    return words
+    panic(err)
   }
   defer file.Close()
 
+  // open connection to mongodb
+  session, err := mgo.Dial(dbServer)
+  if err != nil {
+    panic(err)
+  }
+  defer session.Close()
+  collection := session.DB(dbName).C(collecName)
+
   reader := bufio.NewReader(file)
-  i := 0
-  dump_count := 1
   oldWordText := ""
+  badWord := ""
+  word := NewWord("")
   for {
-    line, _, err2 := reader.ReadLine()
-    if err2 != nil {
-      fmt.Println(err2)
-      break
+    line, _, err := reader.ReadLine()
+    if err != nil { panic(err)
     }
 
     pieces := strings.Split(string(line), "\t")
+
     // skip this word if it doesn't have proper number of fields
-    if len(pieces) != 5 {continue}
+    if len(pieces) != 5 {
+      continue
+    }
 
     wordText := strings.ToLower(pieces[0])
 
+    // skip entries that correspond to wordText pre-id'ed as bad
+    if wordText == badWord {
+      continue
+    }
+
     // skip words with numeric or other bad chars
-    if alpha_only {
+    if alphaOnly {
       bad := false
-      for _, char := range bad_chars {
+      for _, char := range badChars {
         if strings.Contains(wordText, string(char)) {
+          badWord = wordText
           bad = true;
           break
         }
@@ -129,31 +137,23 @@ func CleanupRawWords(file_name string) map[string] *Word {
     pageCount, _ := strconv.Atoi(pieces[3])
     bookCount, _ := strconv.Atoi(pieces[4])
 
-    if _, ok := words[wordText]; !ok { // word is not already in list
-      if oldWordText != "" {
-        // remove word if it has too low statistics
-        if words[oldWordText].TotalCount() < count_cutoff {
-          delete(words, oldWordText)
-          i--
+    // if wordText/data is a new word
+    if oldWordText != wordText {
+      oldWordText = wordText
+
+      // add word to mongodb if it has high enough stats
+      if word.TotalCount() >= countCutoff {
+        err = collection.Insert(&word)
+        if err != nil {
+          panic(err)
         }
       }
 
-      if i >= dump_freq {
-        MarshalJsonList("clean" + strconv.Itoa(dump_count), words)
-        words = make(map[string] *Word)
-        i = 0
-        dump_count++
-      }
-
-      i++
-      oldWordText = wordText
-      words[wordText] = NewWord(wordText)
+      // create new word val
+      word = NewWord(wordText)
     }
-    words[wordText].AddEntry(year, count, pageCount, bookCount)
+    word.AddEntry(year, count, pageCount, bookCount)
   }
-
-  MarshalJsonList("clean" + strconv.Itoa(dump_count) + ".json", words)
-  return words
 }
 
 type XYonly struct {

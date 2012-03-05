@@ -11,6 +11,9 @@ import (
 )
 
 func main() {
+  CleanupRawWords("/home/robert/ngrams/grams2.csv")
+  return
+
   http.HandleFunc("/viz", indexHandler)
   http.HandleFunc("/viz/viz.js", vizScriptHandler)
   http.HandleFunc("/data/", dataHandlerGen())
@@ -18,7 +21,7 @@ func main() {
   fmt.Println("Starting http server...")
   err := http.ListenAndServe("0.0.0.0:8888", nil)
   if err != nil {
-    fmt.Println(err)
+    panic(err)
   }
 }
 
@@ -44,13 +47,11 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
 
     lower, err := strconv.Atoi(rangeText[2])
     if err != nil {
-      fmt.Println("Error: ", err)
-      return
+      panic(err)
     }
     numWanted, err := strconv.Atoi(rangeText[3])
     if err != nil {
-      fmt.Println("Error: ", err)
-      return
+      panic(err)
     }
 
     upper := numWanted + lower
@@ -68,8 +69,7 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
 
     marshaled, err := json.Marshal(data)
     if err != nil {
-      fmt.Println("Error: ", err)
-      return
+      panic(err)
     }
     _, _ = w.Write(marshaled)
   }
