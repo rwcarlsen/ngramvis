@@ -41,18 +41,19 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
     path := req.URL.Path
 
     rangeText := strings.Split(path, "/")
-    lower, err := strconv.Atoi(rangeText[2])
-    numWanted, err2 := strconv.Atoi(rangeText[3])
 
+    lower, err := strconv.Atoi(rangeText[2])
     if err != nil {
       fmt.Println("Error: ", err)
       return
-    } else if err2 != nil {
-      fmt.Println("Error: ", err2)
+    }
+    numWanted, err := strconv.Atoi(rangeText[3])
+    if err != nil {
+      fmt.Println("Error: ", err)
       return
     }
-    upper := numWanted + lower
 
+    upper := numWanted + lower
     if upper - 1 > len(words) {upper = len(words) - 1}
 
     fmt.Println("Json Request for words", lower, " through ",  upper)

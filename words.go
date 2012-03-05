@@ -11,6 +11,13 @@ import (
   "io/ioutil"
 )
 
+const (
+  alpha_only = true // include/exclude words with non-alpha chars
+  bad_chars = "1234567890~`!@#$%&:;*()+=/-[]{}|\\\"^" // chars that constitute excluded words
+  count_cutoff = 100 // words with lower counts are excluded
+  dump_freq = 25000 // word limit at which memory to file dump is performed
+)
+
 func MarshalJsonList(file_name string, words map[string]*Word) {
   wordList := make([]*Word, len(words))
 
@@ -78,11 +85,6 @@ func UnmarshalJsonMap(file_name string) (words map[string]*Word) {
 }
 
 func CleanupRawWords(file_name string) map[string] *Word {
-  alpha_only := true
-  bad_chars := "1234567890~`!@#$%&:;*()+=/-[]{}|\\\"^"
-  count_cutoff := 100
-  dump_freq := 25000
-
   var words = make(map[string] *Word)
 
   // open file and check for errors
@@ -127,8 +129,7 @@ func CleanupRawWords(file_name string) map[string] *Word {
     pageCount, _ := strconv.Atoi(pieces[3])
     bookCount, _ := strconv.Atoi(pieces[4])
 
-    _, ok := words[wordText]
-    if !ok { // word is not already in list
+    if _, ok := words[wordText]; !ok { // word is not already in list
       if oldWordText != "" {
         // remove word if it has too low statistics
         if words[oldWordText].TotalCount() < count_cutoff {
@@ -137,7 +138,7 @@ func CleanupRawWords(file_name string) map[string] *Word {
         }
       }
 
-      if i > dump_freq {
+      if i >= dump_freq {
         MarshalJsonList("clean" + strconv.Itoa(dump_count), words)
         words = make(map[string] *Word)
         i = 0
