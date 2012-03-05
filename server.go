@@ -6,22 +6,53 @@ import (
   "strconv"
   "strings"
   "fmt"
+  "path"
   "net/http"
   "encoding/json"
+  "launchpad.net/mgo"
+)
+
+const (
+  dbServer = "localhost"
+  dbName = "ngrams"
+  collecName = "words"
+)
+
+const (
+  cleanRaw = false
+  ngramsDir = "/home/robert/ngrams"
+  ngramsBase = "grams"
+  ngramsExt = "csv"
+  ngramsLow = 3
+  ngramsHigh = 10
 )
 
 func main() {
-  CleanupRawWords("/home/robert/ngrams/grams2.csv")
-  return
+  if cleanRaw {
+    for i := ngramsLow; i <= ngramsHigh; i++ {
+      fname := ngramsBase + strconv.Itoa(i) + "." + ngramsExt
+      path := path.Join(ngramsDir, fname)
+      CleanupRawWords(path)
+    }
+    return
+  }
+
+  session, err := mgo.Dial(dbServer)
+  if err != nil {
+    fmt.Println(err)
+    return
+  }
+  defer session.Close()
 
   http.HandleFunc("/viz", indexHandler)
   http.HandleFunc("/viz/viz.js", vizScriptHandler)
-  http.HandleFunc("/data/", dataHandlerGen())
+  http.HandleFunc("/data/", dataHandlerGen(session))
 
   fmt.Println("Starting http server...")
-  err := http.ListenAndServe("0.0.0.0:8888", nil)
+  err = http.ListenAndServe("0.0.0.0:8888", nil)
   if err != nil {
-    panic(err)
+    fmt.Println(err)
+    return
   }
 }
 
@@ -38,9 +69,16 @@ func vizScriptHandler(w http.ResponseWriter, req *http.Request) {
     _, _ = w.Write(file_data)
 }
 
-func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
-  words := UnmarshalJsonList("/home/robert/ngrams/clean1.json")
+func dataHandlerGen(session *mgo.Session) func(http.ResponseWriter, *http.Request) {
+  collection := session.DB(dbName).C(collecName)
+
   return func(w http.ResponseWriter, req *http.Request) {
+    defer func() {
+      if r := recover(); r != nil {
+        fmt.Println("Recovered in 'handler'", r)
+      }
+    }()
+
     path := req.URL.Path
 
     rangeText := strings.Split(path, "/")
@@ -54,17 +92,22 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       panic(err)
     }
 
-    upper := numWanted + lower
-    if upper - 1 > len(words) {upper = len(words) - 1}
-
-    fmt.Println("Json Request for words", lower, " through ",  upper)
-
+    // allocate space for retrieved data
     data := make([]XYonly, numWanted)
 
-    count := 0
-    for i := lower; i < upper; i++ {
-      data[count] = words[i].TotPgDenBkCnt()
-      count++
+    // query mongodb
+    var result Word
+    query := collection.Find(nil)
+    query = query.Skip(lower)
+    iter := query.Iter()
+    for count := 0; count < numWanted; count++ {
+      if ! iter.Next(&result) {
+        break
+      }
+      data[count] = result.TotPgDenBkCnt()
+    }
+    if iter.Err() != nil {
+      panic(iter.Err())
     }
 
     marshaled, err := json.Marshal(data)

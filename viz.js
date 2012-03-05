@@ -7,7 +7,7 @@ var pad = rbig + 10
 
 var data = [];
 var num_datums = 2500;
-var chunk_size = 500;
+var chunk_size = 100;
 
 // tooltip stuff:
 var tooltip = d3.select("#tooltip")

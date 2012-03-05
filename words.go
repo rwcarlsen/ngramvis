@@ -15,9 +15,6 @@ const (
   alphaOnly = true // include/exclude words with non-alpha chars
   badChars = "1234567890~`!@#$%&:;*()+=/-[]{}|\\\"^" // chars that constitute excluded words
   countCutoff = 100 // words with lower counts are excluded
-  dbServer = "localhost"
-  dbName = "ngrams"
-  collecName = "words"
 )
 
 func MarshalJsonList(file_name string, words map[string]*Word) {
@@ -54,32 +51,6 @@ func UnmarshalJsonList(file_name string) (words []*Word) {
   return
 }
 
-func MarshalJsonMap(file_name string, words map[string]*Word) {
-  marshaled, err := json.Marshal(words)
-  if err != nil {
-    panic(err)
-  }
-
-  err = ioutil.WriteFile(file_name, marshaled, os.ModePerm)
-  if err != nil {
-    panic(err)
-  }
-}
-
-func UnmarshalJsonMap(file_name string) (words map[string]*Word) {
-  data, err := ioutil.ReadFile(file_name)
-  if err != nil {
-    panic(err)
-  }
-
-  err = json.Unmarshal(data, &words)
-  if err != nil {
-    panic(err)
-  }
-
-  return
-}
-
 func CleanupRawWords(file_name string) {
   // open file and check for errors
   file, err := os.Open(file_name)
@@ -102,7 +73,8 @@ func CleanupRawWords(file_name string) {
   word := NewWord("")
   for {
     line, _, err := reader.ReadLine()
-    if err != nil { panic(err)
+    if err != nil {
+      panic(err)
     }
 
     pieces := strings.Split(string(line), "\t")
@@ -112,7 +84,7 @@ func CleanupRawWords(file_name string) {
       continue
     }
 
-    wordText := strings.ToLower(pieces[0])
+    wordText := pieces[0]
 
     // skip entries that correspond to wordText pre-id'ed as bad
     if wordText == badWord {
@@ -159,7 +131,7 @@ func CleanupRawWords(file_name string) {
 type XYonly struct {
   W string // word text
   X float32 // x coordinate
-  Y int // y coordinate
+  Y float32 // y coordinate
 }
 
 type Word struct {
@@ -169,9 +141,9 @@ type Word struct {
 
 type Entry struct {
   Y int // year of count
-  W int // word count
-  P int // page count
-  B int // book count
+  W float32 // word count
+  P float32 // page count
+  B float32 // book count
 }
 
 func NewWord(text string) *Word {
@@ -190,7 +162,12 @@ func (w *Word) Length() int {
 }
 
 func (w *Word) AddEntry(year, count, pageCount, bookCount int) {
-  w.C[strconv.Itoa(year)] = Entry {year, count, pageCount, bookCount}
+  nCount, nPages, nBooks := normCounts(year, count, pageCount, bookCount)
+  w.C[strconv.Itoa(year)] = Entry {year, nCount, nPages, nBooks}
+}
+
+func normCounts(year, count, pageCount, bookCount int) (nCount, nPages, nBooks float32) {
+  panic("not implemented yet")
 }
 
 func (w *Word) TotalPageDensity() float32 {
@@ -206,33 +183,24 @@ func (w *Word) PageDensity(year int) float32 {
   return float32(w.C[styear].W) / float32(w.C[styear].P)
 }
 
-func (w *Word) String() string {
-  str := w.T
-  str += " {BookCount = " + strconv.Itoa(w.TotalBooks())
-  str += ", PageCount = " + strconv.Itoa(w.TotalPages())
-  str += ", Count = " + strconv.Itoa(w.TotalCount())
-  str+= "}"
-  return str
-}
-
-func (w *Word) TotalCount() int {
-  total := 0
+func (w *Word) TotalCount() float32 {
+  var total float32
   for _, entry := range w.C {
     total += entry.W
   }
   return total
 }
 
-func (w *Word) TotalPages() int {
-  total := 0
+func (w *Word) TotalPages() float32 {
+  var total float32
   for _, entry := range w.C {
     total += entry.P
   }
   return total
 }
 
-func (w *Word) TotalBooks() int {
-  total := 0
+func (w *Word) TotalBooks() float32 {
+  var total float32
   for _, entry := range w.C {
     total += entry.B
   }
