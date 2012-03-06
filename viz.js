@@ -6,7 +6,7 @@ var rbig = 8;
 var pad = rbig + 10
 
 var data = [];
-var num_datums = 1000;
+var num_datums = 500;
 var chunk_size = 100;
 var disp_year = "2005"
 
@@ -37,15 +37,27 @@ function pd(entry) {
 }
 
 function renderVis(newdata) {
-  data = data.concat(newdata)
-  //document.write(data[0].C[disp_year].B);
+  var dd;
+  for (var i in newdata) {
+    dd = new Object();
+    if (newdata[i].C[disp_year] == undefined) {
+      continue;
+    }
+    dd.W = newdata[i].T;
+    dd.Y = newdata[i].C[disp_year].B;
+    dd.X = pd(newdata[i].C[disp_year]);
+    dd.r = Math.sqrt(4 * newdata[i].T.length);
+    dd.rbig = Math.sqrt(8 * newdata[i].T.length);
+    dd.C = newdata[i].C[disp_year].W;
+    data.push(dd);
+  }
 
   // calc max/min and calibrate axis scales
   bkmin = 1;
-  bkmax = d3.max(data, function(d) {return d.C[disp_year].B;})
+  bkmax = d3.max(data, function(d) {return d.Y;})
 
   dmin = 1;
-  dmax = d3.max(data, function(d) {return pd(d.C[disp_year]);})
+  dmax = d3.max(data, function(d) {return d.X;})
 
   var xscale = d3.scale.log()
    .domain([dmin, dmax])
@@ -58,34 +70,35 @@ function renderVis(newdata) {
 
   // update existing circles to updated scales
   circle
-    .attr("cx", function(d, i) {return xscale(pd(d.C[disp_year]));})
-    .attr("cy", function(d, i) {return yscale(d.C[disp_year].B);})
+    .attr("cx", function(d, i) {return xscale(d.X);})
+    .attr("cy", function(d, i) {return yscale(d.Y);})
 
   // add new circles
   circle.data(data)
     .enter().append("svg:circle")
     .style("stroke", "red")
     .style("fill", "black")
-    .attr("r", function(d) {return Math.sqrt(4*d.T.length);})
-    .attr("cx", function(d, i) {return xscale(pd(d.C[disp_year]));})
-    .attr("cy", function(d, i) {return yscale(d.C[disp_year].B);})
+    .attr("r", function(d) {return d.r;})
+    .attr("cx", function(d, i) {return xscale(d.X);})
+    .attr("cy", function(d, i) {return yscale(d.Y);})
     .on("mouseover", function(d) {
         d3.select(this)
           .style("fill", "blue")
-          .attr("r", rbig);
+          .attr("r", function() {return d.rbig;});
         return tooltip
           .style("visibility", "visible")
           .style("top", event.pageY+"px").style("left",(event.pageX+15)+"px")
           .text(function() {
-            return d.T + " : den=" + String(pd(d.C[disp_year])) + ", #bks=" + String(d.C[disp_year].B);
+            return d.W + " : den=" + String(d.X) + ", #bks=" + String(d.Y)
+                       + " <br> cnt=" + String(d.C);
           });
     })
     .on("mousemove", function(){
       return tooltip;
     })
-    .on("mouseout", function(){
+    .on("mouseout", function(d){
         d3.select(this)
-          .attr("r", r)
+          .attr("r", function() {return d.r;})
           .style("fill", "black");
         return tooltip.style("visibility", "hidden");
       })

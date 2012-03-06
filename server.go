@@ -110,16 +110,6 @@ func dataHandlerGen(session *mgo.Session) func(http.ResponseWriter, *http.Reques
       panic(iter.Err())
     }
 
-    // fill in all missing years with zeros
-    for _, word := range data {
-      for yr := 1520; yr < 2010; yr++ {
-        year := strconv.Itoa(yr)
-        if _, ok := word.C[year]; !ok {
-          word.AddEntry(yr, 0, 0, 0)
-        }
-      }
-    }
-
     marshaled, err := json.Marshal(data)
     if err != nil {
       panic(err)
