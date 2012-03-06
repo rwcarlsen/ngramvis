@@ -8,7 +8,7 @@ var pad = rbig + 10
 var data = [];
 var num_datums = 1000;
 var chunk_size = 100;
-var disp_year = "2000"
+var disp_year = "2005"
 
 // tooltip stuff:
 var tooltip = d3.select("#tooltip")
@@ -66,7 +66,7 @@ function renderVis(newdata) {
     .enter().append("svg:circle")
     .style("stroke", "red")
     .style("fill", "black")
-    .attr("r", r)
+    .attr("r", function(d) {return Math.sqrt(4*d.T.length);})
     .attr("cx", function(d, i) {return xscale(pd(d.C[disp_year]));})
     .attr("cy", function(d, i) {return yscale(d.C[disp_year].B);})
     .on("mouseover", function(d) {
