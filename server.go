@@ -93,7 +93,7 @@ func dataHandlerGen(session *mgo.Session) func(http.ResponseWriter, *http.Reques
     }
 
     // allocate space for retrieved data
-    data := make([]XYonly, numWanted)
+    data := make([]Word, numWanted)
 
     // query mongodb
     var result Word
@@ -104,10 +104,20 @@ func dataHandlerGen(session *mgo.Session) func(http.ResponseWriter, *http.Reques
       if ! iter.Next(&result) {
         break
       }
-      data[count] = result.TotPgDenBkCnt()
+      data[count] = result
     }
     if iter.Err() != nil {
       panic(iter.Err())
+    }
+
+    // fill in all missing years with zeros
+    for _, word := range data {
+      for yr := 1520; yr < 2010; yr++ {
+        year := strconv.Itoa(yr)
+        if _, ok := word.C[year]; !ok {
+          word.AddEntry(yr, 0, 0, 0)
+        }
+      }
     }
 
     marshaled, err := json.Marshal(data)

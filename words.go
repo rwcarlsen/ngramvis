@@ -167,7 +167,10 @@ func (w *Word) AddEntry(year, count, pageCount, bookCount int) {
 }
 
 func normCounts(year, count, pageCount, bookCount int) (nCount, nPages, nBooks float32) {
-  panic("not implemented yet")
+  nCount = float32(count)
+  nPages = float32(pageCount)
+  nBooks = float32(bookCount)
+  return
 }
 
 func (w *Word) TotalPageDensity() float32 {
