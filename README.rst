@@ -86,3 +86,46 @@ dataset. Another evaluation criteria will be the usefulness of our actual design
 and whether or not it highlights interesting words or relationships between words. 
 However, this criteria is secondary.
 
+Initial Reading
+----------------
+
+* d3 api documentation (https://github.com/mbostock/d3/wiki)
+
+* Go api documentation (http://weekly.golang.org)
+
+* Visual Thinking for Design (Ware) Ch. 8 (Creative Meta-seeing)
+
+3/9/2012 Update
++++++++++++++++
+
+
+Initial Progress
+----------------
+
+3/9/2012 Update
++++++++++++++++
+
+.. image:: https://plus.google.com/photos/110223354232123272707/albums/5717258253797892417?authkey=CKfEyL2uk-31zwE
+   :width:300px
+
+* created a rudimentary semi-interative dummy visualization.
+
+  * uses client-server paradigm
+
+  * web-based using d3 toolset
+
+  * renders small subset of google ngram data (few hundred words)
+
+* challenges:
+
+  * Addressing issues of scale will be more challenging than we initially
+    supposed.  Traversing (and doing simple calcs on) the ngram dataset (millions
+    of words) takes on the order of hours for things as simple as determining the
+    X most common words.  We will likely have to limit our visualization word
+    pool to a pre-chosen set of on the order of 10000 words.
+  
+  * Javascript rendering can satisfactorily handle circa a few thousand words
+    tops.  This could potentially be addressed by having serverside processing
+    that only sends
+
+
