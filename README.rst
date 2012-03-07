@@ -1,4 +1,3 @@
-
 Evaluating capability of non-temporal axis representations of Ngram data
 ========================================================================
 
@@ -105,8 +104,7 @@ Initial Progress
 3/9/2012 Update
 +++++++++++++++
 
-.. image:: https://plus.google.com/photos/110223354232123272707/albums/5717258253797892417?authkey=CKfEyL2uk-31zwE
-   :width:300px
+Screenshot of progress `here <https://plus.google.com/photos/110223354232123272707/albums/5717258253797892417?authkey=CKfEyL2uk-31zwE>`_.
 
 * created a rudimentary semi-interative dummy visualization.
 
