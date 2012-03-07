@@ -94,9 +94,6 @@ Initial Reading
 
 * Visual Thinking for Design (Ware) Ch. 8 (Creative Meta-seeing)
 
-3/9/2012 Update
-+++++++++++++++
-
 
 Initial Progress
 ----------------
