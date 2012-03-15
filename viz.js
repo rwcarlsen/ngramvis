@@ -1,13 +1,14 @@
 // global variables
-var h = 750;
-var w = 1200;
-var r = 3;
-var rbig = 8;
-var pad = rbig + 10
+var h = 750; //height
+var w = 1200; //width
+var r = 3; //radius - IS THIS EVER USED?
+var rbig = 8; //max radius size - JUST SEEMS TO BE USED TO DEFINE PAD
+//var pad = rbig + 10 //padding around the graphing space
+var pad = 50
 
 var data = [];
 var num_datums = 500;
-var chunk_size = 100;
+var chunk_size = 100; //
 var disp_year = "2005"
 
 // tooltip stuff:
@@ -31,6 +32,7 @@ for (i = 0; i < num_datums; i += chunk_size) {
   d3.json("/data/" + i + "/" + chunk_size, function(json) {renderVis(json);});
 }
 
+// This function calculates page-density
 function pd(entry) {
   if (entry.P == 0) {return 0;}
   return entry.W / entry.P;
@@ -43,12 +45,12 @@ function renderVis(newdata) {
     if (newdata[i].C[disp_year] == undefined) {
       continue;
     }
-    dd.W = newdata[i].T;
-    dd.Y = newdata[i].C[disp_year].B;
-    dd.X = pd(newdata[i].C[disp_year]);
-    dd.r = Math.sqrt(4 * newdata[i].T.length);
-    dd.rbig = Math.sqrt(8 * newdata[i].T.length);
-    dd.C = newdata[i].C[disp_year].W;
+    dd.W = newdata[i].T; // word text
+    dd.Y = newdata[i].C[disp_year].B; // y-coordinate: book count
+    dd.X = pd(newdata[i].C[disp_year]); // x-coordinate: page density
+    dd.r = Math.sqrt(4 * newdata[i].T.length); // radius - proportional to word length
+    dd.rbig = Math.sqrt(8 * newdata[i].T.length); // mouseover radius
+    dd.C = newdata[i].C[disp_year].W; // word count
     data.push(dd);
   }
 
@@ -90,7 +92,7 @@ function renderVis(newdata) {
           .style("top", event.pageY+"px").style("left",(event.pageX+15)+"px")
           .text(function() {
             return d.W + " : den=" + String(d.X) + ", #bks=" + String(d.Y)
-                       + " <br> cnt=" + String(d.C);
+                       + " \n cnt=" + String(d.C);
           });
     })
     .on("mousemove", function(){
