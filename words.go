@@ -3,6 +3,9 @@ package main
 
 import (
   "os"
+  "fmt"
+  "sort"
+  "path"
   "bufio"
   "strconv"
   "strings"
@@ -15,18 +18,11 @@ const (
   alphaOnly = true // include/exclude words with non-alpha chars
   badChars = "1234567890~`!@#$%&:;*()+=/-[]{}|\\\"^" // chars that constitute excluded words
   countCutoff = 100 // words with lower counts are excluded
+  maxWords = 10000
 )
 
-func MarshalJsonList(file_name string, words map[string]*Word) {
-  wordList := make([]*Word, len(words))
-
-  count := 0
-  for _, word := range words {
-    wordList[count] = word
-    count++
-  }
-
-  marshaled, err := json.Marshal(wordList)
+func MarshalJsonList(file_name string, words []*Word) {
+  marshaled, err := json.Marshal(words)
   if err != nil {
     panic(err)
   }
@@ -51,21 +47,82 @@ func UnmarshalJsonList(file_name string) (words []*Word) {
   return
 }
 
-func CleanupRawWords(file_name string) {
+func DbWrite(words []*Word) {
+  // open connection to mongodb
+  session, err := mgo.Dial(dbServer)
+  if err != nil {
+    fmt.Println(err)
+  } else {
+    defer session.Close()
+  }
+
+  collection := session.DB(dbName).C(collecName)
+  for _, w := range words {
+    err := collection.Insert(w)
+    if err != nil {
+      panic(err)
+    }
+  }
+}
+
+func NormCounts() (norm, pgnorm, bknorm map[int]float32) {
+  fmt.Println("Loading total yearly counts.")
+  norm = make(map[int]float32, 0)
+  pgnorm = make(map[int]float32, 0)
+  bknorm = make(map[int]float32, 0)
+
+  fname := totsBase + "." + ngramsExt
+  path := path.Join(ngramsDir, fname)
+
+  // open file and check for errors
+  file, err := os.Open(path)
+  if err != nil {
+    panic(err)
+  }
+  defer file.Close()
+
+  reader := bufio.NewReader(file)
+  for {
+    line, _, err := reader.ReadLine()
+    if err != nil {
+      // probably EOF
+      fmt.Println(err)
+      break
+    }
+
+    pieces := strings.Split(string(line), "\t")
+
+    // skip this year if it doesn't have proper number of fields
+    if len(pieces) != 4 {
+      continue
+    }
+
+    year, _ := strconv.Atoi(pieces[0])
+    c, _ := strconv.Atoi(pieces[1])
+    p, _ := strconv.Atoi(pieces[2])
+    b, _ := strconv.Atoi(pieces[3])
+    count := float32(c)
+    pages := float32(p)
+    books := float32(b)
+
+    norm[year] = count
+    pgnorm[year] = pages
+    bknorm[year] = books
+  }
+  return
+}
+
+func CleanupRawWords(file_name string, words []*Word) []*Word {
+  norm, pgnorm, bknorm := NormCounts()
+
+  fmt.Println("cleaning file ", file_name, "...")
+
   // open file and check for errors
   file, err := os.Open(file_name)
   if err != nil {
     panic(err)
   }
   defer file.Close()
-
-  // open connection to mongodb
-  session, err := mgo.Dial(dbServer)
-  if err != nil {
-    panic(err)
-  }
-  defer session.Close()
-  collection := session.DB(dbName).C(collecName)
 
   reader := bufio.NewReader(file)
   oldWordText := ""
@@ -74,7 +131,9 @@ func CleanupRawWords(file_name string) {
   for {
     line, _, err := reader.ReadLine()
     if err != nil {
-      panic(err)
+      // probably EOF
+      fmt.Println(err)
+      break
     }
 
     pieces := strings.Split(string(line), "\t")
@@ -105,19 +164,26 @@ func CleanupRawWords(file_name string) {
     }
 
     year, _ := strconv.Atoi(pieces[1])
-    count, _ := strconv.Atoi(pieces[2])
-    pageCount, _ := strconv.Atoi(pieces[3])
-    bookCount, _ := strconv.Atoi(pieces[4])
+    c, _ := strconv.Atoi(pieces[2])
+    p, _ := strconv.Atoi(pieces[3])
+    b, _ := strconv.Atoi(pieces[4])
+    count := float32(c) / norm[year]
+    pageCount := float32(p) / pgnorm[year]
+    bookCount := float32(b) / bknorm[year]
 
     // if wordText/data is a new word
     if oldWordText != wordText {
       oldWordText = wordText
 
-      // add word to mongodb if it has high enough stats
-      if word.TotalCount() >= countCutoff {
-        err = collection.Insert(&word)
-        if err != nil {
-          panic(err)
+      // write old word to output slice
+      i := sort.Search(len(words), func(i int) bool {return words[i].TotalCount() <= word.TotalCount()})
+      if len(words) < maxWords {
+        // insert word into slice
+        words = append(words[:i], append([]*Word{word}, words[i:]...)...)
+      } else {
+        // swap word into slice
+        if i < len(words) {
+          words[i] = word
         }
       }
 
@@ -126,6 +192,8 @@ func CleanupRawWords(file_name string) {
     }
     word.AddEntry(year, count, pageCount, bookCount)
   }
+
+  return words
 }
 
 type XYonly struct {
@@ -137,6 +205,7 @@ type XYonly struct {
 type Word struct {
   T string // word text
   C map[string] Entry // yearly count entries
+  totalCount float32
 }
 
 type Entry struct {
@@ -161,16 +230,8 @@ func (w *Word) Length() int {
   return len(w.T)
 }
 
-func (w *Word) AddEntry(year, count, pageCount, bookCount int) {
-  nCount, nPages, nBooks := normCounts(year, count, pageCount, bookCount)
-  w.C[strconv.Itoa(year)] = Entry {year, nCount, nPages, nBooks}
-}
-
-func normCounts(year, count, pageCount, bookCount int) (nCount, nPages, nBooks float32) {
-  nCount = float32(count)
-  nPages = float32(pageCount)
-  nBooks = float32(bookCount)
-  return
+func (w *Word) AddEntry(year int, count, pageCount, bookCount float32) {
+  w.C[strconv.Itoa(year)] = Entry {year, count, pageCount, bookCount}
 }
 
 func (w *Word) TotalPageDensity() float32 {
@@ -187,11 +248,12 @@ func (w *Word) PageDensity(year int) float32 {
 }
 
 func (w *Word) TotalCount() float32 {
-  var total float32
-  for _, entry := range w.C {
-    total += entry.W
+  if w.totalCount == 0 {
+    for _, entry := range w.C {
+      w.totalCount += entry.W
+    }
   }
-  return total
+  return w.totalCount
 }
 
 func (w *Word) TotalPages() float32 {
@@ -208,5 +270,9 @@ func (w *Word) TotalBooks() float32 {
     total += entry.B
   }
   return total
+}
+
+func (w *Word) String() string {
+  return fmt.Sprint(w)
 }
 

@@ -19,21 +19,24 @@ const (
 )
 
 const (
-  cleanRaw = false
+  cleanRaw = true
   ngramsDir = "/home/robert/ngrams"
   ngramsBase = "grams"
+  totsBase = "tots"
   ngramsExt = "csv"
-  ngramsLow = 3
+  ngramsLow = 1
   ngramsHigh = 10
 )
 
 func main() {
   if cleanRaw {
+    var words []*Word
     for i := ngramsLow; i <= ngramsHigh; i++ {
       fname := ngramsBase + strconv.Itoa(i) + "." + ngramsExt
       path := path.Join(ngramsDir, fname)
-      CleanupRawWords(path)
+      words = CleanupRawWords(path, words)
     }
+    MarshalJsonList("top.json", words)
     return
   }
 
