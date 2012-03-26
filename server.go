@@ -6,11 +6,9 @@ import (
   "strconv"
   "strings"
   "fmt"
-  "path"
   "net/http"
   "encoding/json"
   "launchpad.net/mgo"
-  "github.com/petar/GoLLRB/llrb"
 )
 
 const (
@@ -18,29 +16,13 @@ const (
   dbName = "ngrams"
   collecName = "words"
 )
-
 const (
   cleanRaw = true
-  ngramsDir = "/home/robert/ngrams"
-  ngramsBase = "grams"
-  totsBase = "tots"
-  ngramsExt = "csv"
-  ngramsLow = 2
-  ngramsHigh = 2
 )
 
 func main() {
   if cleanRaw {
-    var tree *llrb.Tree
-    for i := ngramsLow; i <= ngramsHigh; i++ {
-      fname := ngramsBase + strconv.Itoa(i) + "." + ngramsExt
-      path := path.Join(ngramsDir, fname)
-      tree = CleanupRawWords(path, tree)
-    }
-
-    words := TreeToSlice(tree)
-
-    MarshalJsonList("top.json", words)
+    ProcessRaw()
     return
   }
 

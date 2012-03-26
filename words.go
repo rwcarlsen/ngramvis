@@ -8,6 +8,7 @@ import (
   "bufio"
   "strconv"
   "strings"
+  "runtime"
   "encoding/json"
   "io/ioutil"
   "launchpad.net/mgo"
@@ -18,7 +19,16 @@ const (
   alphaOnly = true // include/exclude words with non-alpha chars
   badChars = "1234567890~`!@#$%&:;*()+=/-[]{}|\\\"^" // chars that constitute excluded words
   countCutoff = 100 // words with lower counts are excluded
-  maxWords = 50000
+)
+
+const (
+  ngramsDir = "/home/robert/ngrams"
+  ngramsBase = "grams"
+  totsBase = "tots"
+  ngramsExt = "csv"
+  ngramsLow = 2
+  ngramsHigh = 3
+  maxWords = 10000
 )
 
 func MarshalJsonList(file_name string, words []*Word) {
@@ -47,7 +57,7 @@ func UnmarshalJsonList(file_name string) (words []*Word) {
   return
 }
 
-func TreeToSlice(tree llrb.Tree) []*Word {
+func TreeToSlice(tree *llrb.Tree) []*Word {
   words := make([]*Word, tree.Len())
   count := 0
   for word := range tree.IterDescend() {
@@ -126,11 +136,46 @@ func lessWC(a, b interface{}) bool {
   return a.(*Word).TotalCount() <= b.(*Word).TotalCount()
 }
 
-func CleanupRawWords(file_name string, words *llrb.Tree) *llrb.Tree {
+func ProcessRaw() {
+  NCPU := runtime.NumCPU()
+  runtime.GOMAXPROCS(NCPU)
+
   tree := llrb.New(lessWC)
+  ch := make(chan *Word, 100)
+  dead := make(chan bool)
+  for i := ngramsLow; i <= ngramsHigh; i++ {
+    fname := ngramsBase + strconv.Itoa(i) + "." + ngramsExt
+    path := path.Join(ngramsDir, fname)
+    go CleanupRawWords(path, ch, dead)
+  }
+
+  deadcount := 0
+  var done bool
+  for {
+    select {
+      case word := <-ch:
+        tree.InsertNoReplace(word)
+        if tree.Len() > maxWords {
+          tree.DeleteMin()
+        }
+      case <-dead:
+        deadcount++
+        if deadcount == ngramsHigh - ngramsLow + 1 {
+          done = true
+        }
+    }
+    if done {
+      break
+    }
+  }
+  words := TreeToSlice(tree)
+  MarshalJsonList("top.json", words)
+}
+
+func CleanupRawWords(file_name string, ch chan *Word, dead chan bool) {
+  defer func() {dead <- true}()
 
   norm, pgnorm, bknorm := NormCounts()
-
   fmt.Println("cleaning file ", file_name, "...")
 
   // open file and check for errors
@@ -190,20 +235,12 @@ func CleanupRawWords(file_name string, words *llrb.Tree) *llrb.Tree {
     // if wordText/data is a new word
     if oldWordText != wordText {
       oldWordText = wordText
-
-      // write old word to output slice
-      tree.InsertNoReplace(word)
-      if words.Len() > maxWords {
-        tree.DeleteMin()
-      }
-
-      // create new word val
+      ch <- word
       word = NewWord(wordText)
     }
     word.AddEntry(year, count, pageCount, bookCount)
   }
 
-  return tree
 }
 
 type XYonly struct {
