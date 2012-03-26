@@ -4,7 +4,6 @@ package main
 import (
   "os"
   "fmt"
-  "sort"
   "path"
   "bufio"
   "strconv"
@@ -12,13 +11,14 @@ import (
   "encoding/json"
   "io/ioutil"
   "launchpad.net/mgo"
+  "github.com/petar/GoLLRB/llrb"
 )
 
 const (
   alphaOnly = true // include/exclude words with non-alpha chars
   badChars = "1234567890~`!@#$%&:;*()+=/-[]{}|\\\"^" // chars that constitute excluded words
   countCutoff = 100 // words with lower counts are excluded
-  maxWords = 10000
+  maxWords = 50000
 )
 
 func MarshalJsonList(file_name string, words []*Word) {
@@ -45,6 +45,16 @@ func UnmarshalJsonList(file_name string) (words []*Word) {
   }
 
   return
+}
+
+func TreeToSlice(tree llrb.Tree) []*Word {
+  words := make([]*Word, tree.Len())
+  count := 0
+  for word := range tree.IterDescend() {
+    words[count] = word.(*Word)
+    count++
+  }
+  return words
 }
 
 func DbWrite(words []*Word) {
@@ -112,7 +122,13 @@ func NormCounts() (norm, pgnorm, bknorm map[int]float32) {
   return
 }
 
-func CleanupRawWords(file_name string, words []*Word) []*Word {
+func lessWC(a, b interface{}) bool {
+  return a.(*Word).TotalCount() <= b.(*Word).TotalCount()
+}
+
+func CleanupRawWords(file_name string, words *llrb.Tree) *llrb.Tree {
+  tree := llrb.New(lessWC)
+
   norm, pgnorm, bknorm := NormCounts()
 
   fmt.Println("cleaning file ", file_name, "...")
@@ -176,15 +192,9 @@ func CleanupRawWords(file_name string, words []*Word) []*Word {
       oldWordText = wordText
 
       // write old word to output slice
-      i := sort.Search(len(words), func(i int) bool {return words[i].TotalCount() <= word.TotalCount()})
-      if len(words) < maxWords {
-        // insert word into slice
-        words = append(words[:i], append([]*Word{word}, words[i:]...)...)
-      } else {
-        // swap word into slice
-        if i < len(words) {
-          words[i] = word
-        }
+      tree.InsertNoReplace(word)
+      if words.Len() > maxWords {
+        tree.DeleteMin()
       }
 
       // create new word val
@@ -193,7 +203,7 @@ func CleanupRawWords(file_name string, words []*Word) []*Word {
     word.AddEntry(year, count, pageCount, bookCount)
   }
 
-  return words
+  return tree
 }
 
 type XYonly struct {
