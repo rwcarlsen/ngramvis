@@ -26,9 +26,10 @@ const (
   ngramsBase = "grams"
   totsBase = "tots"
   ngramsExt = "csv"
-  ngramsLow = 2
-  ngramsHigh = 3
-  maxWords = 10000
+  ngramsLow = 1
+  ngramsHigh = 10
+  maxWords = 15000
+  jsonWords = "top.json"
 )
 
 func MarshalJsonList(file_name string, words []*Word) {
@@ -169,7 +170,7 @@ func ProcessRaw() {
     }
   }
   words := TreeToSlice(tree)
-  MarshalJsonList("top.json", words)
+  MarshalJsonList(jsonWords, words)
 }
 
 func CleanupRawWords(file_name string, ch chan *Word, dead chan bool) {

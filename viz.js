@@ -24,9 +24,9 @@ var xOffset = 40
 var yOffset = 40
 
 var data = [];
-var num_datums = 500;
+var num_datums = 2000;
 var chunk_size = 100; //
-var disp_year = "2005"
+var disp_year = "2008"
 
 // tooltip stuff:
 var tooltip = d3.select("#tooltip")
@@ -72,10 +72,10 @@ function renderVis(newdata) {
   }
 
   // calc max/min and calibrate axis scales
-  bkmin = 1;
-  bkmax = d3.max(data, function(d) {return d.Y;})
+  bkmin = d3.min(data, function(d) {return d.Y;});
+  bkmax = d3.max(data, function(d) {return d.Y;});
 
-  dmin = 1;
+  dmin = d3.min(data, function(d) {return d.X;});
   dmax = d3.max(data, function(d) {return d.X;})
 
   var xscale = d3.scale.log()

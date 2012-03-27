@@ -8,7 +8,6 @@ import (
   "fmt"
   "net/http"
   "encoding/json"
-  "launchpad.net/mgo"
 )
 
 const (
@@ -17,7 +16,7 @@ const (
   collecName = "words"
 )
 const (
-  cleanRaw = true
+  cleanRaw = false
 )
 
 func main() {
@@ -26,19 +25,12 @@ func main() {
     return
   }
 
-  session, err := mgo.Dial(dbServer)
-  if err != nil {
-    fmt.Println(err)
-    return
-  }
-  defer session.Close()
-
   http.HandleFunc("/viz", indexHandler)
   http.HandleFunc("/viz/viz.js", vizScriptHandler)
-  http.HandleFunc("/data/", dataHandlerGen(session))
+  http.HandleFunc("/data/", dataHandlerGen())
 
   fmt.Println("Starting http server...")
-  err = http.ListenAndServe("0.0.0.0:8888", nil)
+  err := http.ListenAndServe("0.0.0.0:8888", nil)
   if err != nil {
     fmt.Println(err)
     return
@@ -58,8 +50,8 @@ func vizScriptHandler(w http.ResponseWriter, req *http.Request) {
     _, _ = w.Write(file_data)
 }
 
-func dataHandlerGen(session *mgo.Session) func(http.ResponseWriter, *http.Request) {
-  collection := session.DB(dbName).C(collecName)
+func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
+  words := UnmarshalJsonList(jsonWords)
 
   return func(w http.ResponseWriter, req *http.Request) {
     defer func() {
@@ -82,27 +74,13 @@ func dataHandlerGen(session *mgo.Session) func(http.ResponseWriter, *http.Reques
     }
 
     // allocate space for retrieved data
-    data := make([]Word, numWanted)
-
-    // query mongodb
-    var result Word
-    query := collection.Find(nil)
-    query = query.Skip(lower)
-    iter := query.Iter()
-    for count := 0; count < numWanted; count++ {
-      if ! iter.Next(&result) {
-        break
-      }
-      data[count] = result
-    }
-    if iter.Err() != nil {
-      panic(iter.Err())
-    }
+    data := words[lower:lower + numWanted]
 
     marshaled, err := json.Marshal(data)
     if err != nil {
       panic(err)
     }
+
     _, _ = w.Write(marshaled)
   }
 }
