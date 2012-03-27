@@ -2,7 +2,6 @@
 package main
 
 import (
-  "sort"
   "io/ioutil"
   "strconv"
   "strings"
@@ -53,6 +52,8 @@ func vizScriptHandler(w http.ResponseWriter, req *http.Request) {
 
 func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
   words := UnmarshalJsonList(jsonWords)
+  var weights, maxes Weights
+  maxes = GetMaxes(words)
 
   return func(w http.ResponseWriter, req *http.Request) {
     defer func() {
@@ -64,37 +65,42 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
     path := req.URL.Path
 
     rangeText := strings.Split(path, "/")
-    if rangeText[2] == "sort" {
-      fmt.Println("beginning sort...")
-      if rangeText[3] == "pden" {
-        sort.Sort(ByPgDensity{words})
-      } else if rangeText[3] == "count" {
-        sort.Sort(ByCount{words})
-      } else if rangeText[3] == "tree" {
-        words = TreeToSlice(SliceToTree(words, func(a, b interface{}) bool {
-          return a.(*Word).TotalPageDensity() <= b.(*Word).TotalPageDensity()
-        }))
-      }
-      fmt.Println("sort finished")
-      fmt.Println("top 10", words[0:10])
+    if rangeText[2] == "reweight" {
+      length, _ := strconv.ParseFloat(rangeText[3], 32)
+      count, _ := strconv.ParseFloat(rangeText[4], 32)
+      pages, _ := strconv.ParseFloat(rangeText[5], 32)
+      books, _ := strconv.ParseFloat(rangeText[6], 32)
+      
+      weights.Length = float32(length)
+      weights.Count = float32(count)
+      weights.Pages = float32(pages)
+      weights.Books = float32(books)
       return
     }
 
-
-    // reorder list
-    lower, err := strconv.Atoi(rangeText[2])
+    yearText := rangeText[2]
+    year, err := strconv.Atoi(rangeText[2])
     if err != nil {
       panic(err)
     }
-    numWanted, err := strconv.Atoi(rangeText[3])
+    lower, err := strconv.Atoi(rangeText[3])
+    if err != nil {
+      panic(err)
+    }
+    numWanted, err := strconv.Atoi(rangeText[4])
     if err != nil {
       panic(err)
     }
 
-    // allocate space for retrieved data
-    data := words[lower:lower + numWanted]
+    scorer := WeightedScoreGenerator(yearText, weights, maxes)
+    scored, scores := GetScores(words, scorer)
+    data := BuildXY(scored, scores, BkVpden)
 
-    marshaled, err := json.Marshal(data)
+    data = TreeToSlice(SliceToTree(data, func(a, b interface{}) bool {
+      return a.(*XYonly).S <= b.(*XYonly).S
+    }))
+
+    marshaled, err := json.Marshal(data[lower:lower + numWanted])
     if err != nil {
       panic(err)
     }

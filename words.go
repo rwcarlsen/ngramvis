@@ -259,6 +259,7 @@ type XYonly struct {
   W string // word text
   X float32 // x coordinate
   Y float32 // y coordinate
+  S float32 // DOI score
 }
 
 type Word struct {
@@ -280,9 +281,76 @@ func NewWord(text string) *Word {
   return &word
 }
 
-// total page density vs. book count
-func (w *Word) TotPgDenBkCnt() XYonly {
-  return XYonly{w.T, w.TotalPageDensity(), float32(w.TotalBooks())}
+func BuildXY(words []*Word, scores []float32, xymapper func(w *Word) (x, y float32)) []*XYonly  {
+  xyonly := make([]*XYonly, len(words))
+  for i, w := range words {
+    x, y := xymapper(w)
+    xyonly[i] = &XYonly{W:w.T, X:x, Y:y, S:scores[i]}
+  }
+  return xyonly
+}
+
+type Weights struct {
+  Length float32
+  Count float32
+  Pages float32
+  Books float32
+}
+
+type LessFunc func(a, b interface{}) bool
+
+func lesslen(a, b interface{}) {return a.(*Word).Length() < b.(*Word).Length()}
+func lesscount(a, b interface{}) {return a.(*Word).TotalCount() < b.(*Word).TotalCount()}
+func lesspages(a, b interface{}) {return a.(*Word).TotalPages() < b.(*Word).TotalPages()}
+func lessbooks(a, b interface{}) {return a.(*Word).TotalBooks() < b.(*Word).TotalBooks()}
+
+func GetMaxes(words []*Word) Weights {
+  l := Max(lesslen, words...)
+  c := Max(lesscount, words...)
+  p := Max(lesspages, words...)
+  b := Max(lessbooks, words...)
+  return Weights{Length:l, Count:c, Pages:p, Books:b}
+}
+
+func Max(less LessFunc, foo... interface{}) interface{} {
+  max := foo[i]
+  for i, _ := range foo[1:] {
+    if less(max, foo[i]) {
+      max = foo
+    }
+  }
+  return max
+}
+
+type Scorer func(w *Word) (float32, bool)
+
+func WeightedScoreGenerator(year string, weights, maxes Weights) Scorer {
+  return func(w *Word) (float32, bool) {
+     if _, ok := w.C[year]; !ok {
+       return 0, false
+     }
+     score := 0
+     score += w.Length() / maxes["len"] * weights["len"]
+     score += w.C[year].W / maxes["count"] * weights["count"]
+     score += w.C[year].P / maxes["pages"] * weights["pages"]
+     score += w.C[year].B / maxes["books"] * weights["books"]
+     return score, true
+  }
+}
+
+func GetScores(words []*Word, scorer Scorer) ([]*Word, []float32) {
+  scores := make([]float32, len(words))
+  scored := make([]*Word, len(words))
+
+  for i, word := range words {
+    score, ok := scorer(word)
+    if ok {
+      scores[i] = score
+      scored[i] = word
+    }
+  }
+
+  return scored, scores
 }
 
 func (w *Word) Length() int {
