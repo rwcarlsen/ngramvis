@@ -28,7 +28,7 @@ const (
   ngramsExt = "csv"
   ngramsLow = 1
   ngramsHigh = 10
-  maxWords = 15000
+  maxWords = 10000
   jsonWords = "top.json"
 )
 
@@ -68,6 +68,24 @@ func TreeToSlice(tree *llrb.Tree) []*Word {
   return words
 }
 
+func SliceToTree(slice []*Word, lessFunc func(a, b interface{}) bool) *llrb.Tree {
+  tree := llrb.New(lessFunc)
+  for _, word := range slice {
+    tree.InsertNoReplace(word)
+  }
+  return tree
+}
+
+type WordCollec []*Word
+func (c WordCollec) Len() int {return len(c)}
+func (c WordCollec) Swap(i, j int) {c[i], c[j] = c[j], c[i]}
+
+type ByPgDensity struct {WordCollec}
+func (c ByPgDensity) Less(i, j int) bool {return c.WordCollec[i].TotalPageDensity() >= c.WordCollec[j].TotalPageDensity()}
+
+type ByCount struct {WordCollec}
+func (c ByCount) Less(i, j int) bool {return c.WordCollec[i].TotalCount() >= c.WordCollec[j].TotalCount()}
+
 func DbWrite(words []*Word) {
   // open connection to mongodb
   session, err := mgo.Dial(dbServer)
@@ -86,11 +104,11 @@ func DbWrite(words []*Word) {
   }
 }
 
-func NormCounts() (norm, pgnorm, bknorm map[int]float32) {
+func NormCounts() (norm, pgnorm, bknorm map[int]int) {
   fmt.Println("Loading total yearly counts.")
-  norm = make(map[int]float32, 0)
-  pgnorm = make(map[int]float32, 0)
-  bknorm = make(map[int]float32, 0)
+  norm = make(map[int]int, 0)
+  pgnorm = make(map[int]int, 0)
+  bknorm = make(map[int]int, 0)
 
   fname := totsBase + "." + ngramsExt
   path := path.Join(ngramsDir, fname)
@@ -119,12 +137,9 @@ func NormCounts() (norm, pgnorm, bknorm map[int]float32) {
     }
 
     year, _ := strconv.Atoi(pieces[0])
-    c, _ := strconv.Atoi(pieces[1])
-    p, _ := strconv.Atoi(pieces[2])
-    b, _ := strconv.Atoi(pieces[3])
-    count := float32(c)
-    pages := float32(p)
-    books := float32(b)
+    count, _ := strconv.Atoi(pieces[1])
+    pages, _ := strconv.Atoi(pieces[2])
+    books, _ := strconv.Atoi(pieces[3])
 
     norm[year] = count
     pgnorm[year] = pages
@@ -147,7 +162,7 @@ func ProcessRaw() {
   for i := ngramsLow; i <= ngramsHigh; i++ {
     fname := ngramsBase + strconv.Itoa(i) + "." + ngramsExt
     path := path.Join(ngramsDir, fname)
-    go CleanupRawWords(path, ch, dead)
+    go cleanupRawWords(path, ch, dead)
   }
 
   deadcount := 0
@@ -173,10 +188,9 @@ func ProcessRaw() {
   MarshalJsonList(jsonWords, words)
 }
 
-func CleanupRawWords(file_name string, ch chan *Word, dead chan bool) {
+func cleanupRawWords(file_name string, ch chan *Word, dead chan bool) {
   defer func() {dead <- true}()
 
-  norm, pgnorm, bknorm := NormCounts()
   fmt.Println("cleaning file ", file_name, "...")
 
   // open file and check for errors
@@ -226,12 +240,9 @@ func CleanupRawWords(file_name string, ch chan *Word, dead chan bool) {
     }
 
     year, _ := strconv.Atoi(pieces[1])
-    c, _ := strconv.Atoi(pieces[2])
-    p, _ := strconv.Atoi(pieces[3])
-    b, _ := strconv.Atoi(pieces[4])
-    count := float32(c) / norm[year]
-    pageCount := float32(p) / pgnorm[year]
-    bookCount := float32(b) / bknorm[year]
+    count, _ := strconv.Atoi(pieces[2])
+    pageCount, _ := strconv.Atoi(pieces[3])
+    bookCount, _ := strconv.Atoi(pieces[4])
 
     // if wordText/data is a new word
     if oldWordText != wordText {
@@ -253,14 +264,14 @@ type XYonly struct {
 type Word struct {
   T string // word text
   C map[string] Entry // yearly count entries
-  totalCount float32
+  tc int
 }
 
 type Entry struct {
   Y int // year of count
-  W float32 // word count
-  P float32 // page count
-  B float32 // book count
+  W int // word count
+  P int // page count
+  B int // book count
 }
 
 func NewWord(text string) *Word {
@@ -271,14 +282,14 @@ func NewWord(text string) *Word {
 
 // total page density vs. book count
 func (w *Word) TotPgDenBkCnt() XYonly {
-  return XYonly{w.T, w.TotalPageDensity(), w.TotalBooks()}
+  return XYonly{w.T, w.TotalPageDensity(), float32(w.TotalBooks())}
 }
 
 func (w *Word) Length() int {
   return len(w.T)
 }
 
-func (w *Word) AddEntry(year int, count, pageCount, bookCount float32) {
+func (w *Word) AddEntry(year, count, pageCount, bookCount int) {
   w.C[strconv.Itoa(year)] = Entry {year, count, pageCount, bookCount}
 }
 
@@ -295,25 +306,25 @@ func (w *Word) PageDensity(year int) float32 {
   return float32(w.C[styear].W) / float32(w.C[styear].P)
 }
 
-func (w *Word) TotalCount() float32 {
-  if w.totalCount == 0 {
+func (w *Word) TotalCount() int {
+  if w.tc == 0 {
     for _, entry := range w.C {
-      w.totalCount += entry.W
+      w.tc += entry.W
     }
   }
-  return w.totalCount
+  return w.tc
 }
 
-func (w *Word) TotalPages() float32 {
-  var total float32
+func (w *Word) TotalPages() int {
+  var total int
   for _, entry := range w.C {
     total += entry.P
   }
   return total
 }
 
-func (w *Word) TotalBooks() float32 {
-  var total float32
+func (w *Word) TotalBooks() int {
+  var total int
   for _, entry := range w.C {
     total += entry.B
   }

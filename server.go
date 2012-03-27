@@ -2,6 +2,7 @@
 package main
 
 import (
+  "sort"
   "io/ioutil"
   "strconv"
   "strings"
@@ -63,7 +64,24 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
     path := req.URL.Path
 
     rangeText := strings.Split(path, "/")
+    if rangeText[2] == "sort" {
+      fmt.Println("beginning sort...")
+      if rangeText[3] == "pden" {
+        sort.Sort(ByPgDensity{words})
+      } else if rangeText[3] == "count" {
+        sort.Sort(ByCount{words})
+      } else if rangeText[3] == "tree" {
+        words = TreeToSlice(SliceToTree(words, func(a, b interface{}) bool {
+          return a.(*Word).TotalPageDensity() <= b.(*Word).TotalPageDensity()
+        }))
+      }
+      fmt.Println("sort finished")
+      fmt.Println("top 10", words[0:10])
+      return
+    }
 
+
+    // reorder list
     lower, err := strconv.Atoi(rangeText[2])
     if err != nil {
       panic(err)
