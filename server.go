@@ -68,7 +68,6 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
 
     rangeText := strings.Split(path, "/")
     if rangeText[2] == "reweight" {
-      fmt.Println("reweighting...")
       year := rangeText[3]
       length, _ := strconv.ParseFloat(rangeText[4], 32)
       count, _ := strconv.ParseFloat(rangeText[5], 32)
@@ -96,12 +95,9 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       data = TreeToXYonly(XYonlyToTree(data, func(a, b interface{}) bool {
         return a.(*XYonly).S <= b.(*XYonly).S
       }))
-      fmt.Println("[]XYonly length = ", len(data))
 
       return
     }
-
-    fmt.Println("filling data request...")
 
     lower, err := strconv.Atoi(rangeText[2])
     if err != nil {
@@ -118,6 +114,7 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
     }
 
     _, _ = w.Write(marshaled)
+    fmt.Println("request filled.")
   }
 }
 

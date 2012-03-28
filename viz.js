@@ -25,10 +25,10 @@ var yOffset = 40
 
 var data = [];
 var start = 00;
-var num_datums = 50;
-var chunk_size = 50; //
+var num_datums = 1000;
+var chunk_size = 100; //
 var disp_year = "2008"
-var weights = "0/0/0/0"
+var weights = "1/0/0/0"
 
 // tooltip stuff:
 var tooltip = d3.select("#tooltip")
@@ -73,8 +73,8 @@ function renderVis(newdata) {
     dd.W = newdata[i].W; // word text
     dd.Y = newdata[i].Y; // y-coordinate: book count
     dd.X = newdata[i].X; // x-coordinate: page density
-    dd.r = newdata[i].S; // radius - proportional to score
-    dd.rbig = newdata[i].S; // mouseover radius
+    dd.r = newdata[i].S + 4; // radius - proportional to score
+    dd.rbig = 1.8 * (newdata[i].S + 4); // mouseover radius
     data.push(dd);
   }
 
