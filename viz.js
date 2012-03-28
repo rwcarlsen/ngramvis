@@ -23,9 +23,9 @@ var yOffset = 40
 var data = [];
 
 //   length / count / pages / books / pg-den
-var weights = "1/0/0/0/.1"
+var weights = "1/0/0/0/0"
 var start_year = 1980;
-var num_datums = 1500;
+var num_datums = 500;
 var rmin = 3
 var rmax = 10
 var pad = rmax + 10 //padding around the graphing space
@@ -46,7 +46,11 @@ var viz = d3.select("#viz")
   .attr("width", w)
   .attr("height", h)
   .on("click", function(){
+    prevframe();
+  })
+  .on("contextmenu", function(){
     nextframe()
+    d3.event.preventDefault();
   });
 
   // Axes 
@@ -80,11 +84,15 @@ function wordtext(d) {
 }
 
 // load external word data - note asynchrous behavior (parallel requests)
-var frame = 0;
+var frame = -1;
 nextframe();
 function nextframe() {
-  d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
   frame += 1;
+  d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
+}
+function prevframe() {
+  frame -= 1;
+  d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
 }
 
 function getData(ndatums) {
