@@ -114,6 +114,9 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
     if err != nil {
       panic(err)
     }
+    if numWanted > len(data) {
+      numWanted = len(data)
+    }
 
     marshaled, err := json.Marshal(data[lower:lower + numWanted])
     if err != nil {
