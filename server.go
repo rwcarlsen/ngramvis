@@ -55,7 +55,12 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
   data := make([]*XYonly, 0)
 
   var weights, maxes Weights
-  maxes = GetMaxes(words)
+  maxes.Length = 12 * 1.333333
+  maxes.Count = 1e7 * .15256
+  maxes.Pages = 1e7 * 2.7316
+  maxes.Books = 1e5 * 6.6948
+  maxes.PageDen = 17 * 1.05334
+
 
   return func(w http.ResponseWriter, req *http.Request) {
     defer func() {
@@ -73,25 +78,27 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       count, _ := strconv.ParseFloat(rangeText[5], 32)
       pages, _ := strconv.ParseFloat(rangeText[6], 32)
       books, _ := strconv.ParseFloat(rangeText[7], 32)
+      pageden, _ := strconv.ParseFloat(rangeText[8], 32)
 
       weights.Length = float32(length)
       weights.Count = float32(count)
       weights.Pages = float32(pages)
       weights.Books = float32(books)
+      weights.PageDen = float32(pageden)
+      fmt.Println("new weights: ", length, count, pages, books, pageden)
+
+      fmt.Println("scoring, building XYonly, and sorting...")
 
       // get score calcing function
       scorer := WeightedScoreGenerator(year, weights, maxes)
 
-      fmt.Println("generating scores...")
       // generate scores for words if possible
       scored, scores := GetScores(words, scorer)
 
-      fmt.Println("building XYonly structs...")
       // convert to XYonly structs
       data = BuildXY(scored, scores, BkVpden(year))
 
       // sort it
-      fmt.Println("sorting...")
       data = TreeToXYonly(XYonlyToTree(data, func(a, b interface{}) bool {
         return a.(*XYonly).S <= b.(*XYonly).S
       }))

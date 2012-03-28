@@ -17,20 +17,20 @@ text {
 // global variables
 var h = 750; //height
 var w = 1200; //width
-var r = 3; //radius - IS THIS EVER USED?
-var rbig = 8; //max radius size - JUST SEEMS TO BE USED TO DEFINE PAD
-var pad = rbig + 10 //padding around the graphing space
 var xOffset = 40
 var yOffset = 40
 
 var data = [];
-var start = 0;
-var num_datums = 100;
-var chunk_size = 100; //
+
+//   length / count / pages / books / pg-den
+var weights = "1/0/0/0/0"
 var disp_year = "2008"
-var weights = "0/1/-1/-4"
+var start = 0;
+var num_datums = 1000;
+var chunk_size = 200; //
 var rmin = 3
 var rmax = 10
+var pad = rmax + 10 //padding around the graphing space
 
 // tooltip stuff:
 var tooltip = d3.select("#tooltip")
@@ -73,8 +73,10 @@ function getData() {
 
 function renderVis(newdata) {
   var dd;
-  maxscore = d3.max(newdata, function(d) {return d.S})
-  minscore = d3.min(newdata, function(d) {return d.S})
+  maxscore = d3.max(newdata.concat(data), function(d) {return d.S})
+  minscore = d3.min(newdata.concat(data), function(d) {return d.S})
+  gbscale = d3.scale.log().domain([minscore, maxscore]).range([255, 0])
+
   for (var i in newdata) {
     dd = new Object();
     s = newdata[i].S
@@ -83,7 +85,7 @@ function renderVis(newdata) {
     dd.X = newdata[i].X; // x-coordinate: page density
     dd.S = newdata[i].S; // x-coordinate: page density
     dd.r = rmin + (s - minscore) / (maxscore - minscore) * (rmax - rmin); // radius - proportional to score
-    dd.rbig = 1.8 * dd.r; // mouseover radius
+    dd.rbig = dd.r + 2; // mouseover radius
     data.push(dd);
   }
 
@@ -151,12 +153,13 @@ function renderVis(newdata) {
   circle
     .attr("cx", function(d, i) {return xscale(d.X);})
     .attr("cy", function(d, i) {return yscale(d.Y);})
+    .style("fill", function(d) {return d3.rgb(255, gbscale(d.S), gbscale(d.S)).toString();})
 
   // add new circles
   circle.data(data)
     .enter().append("svg:circle")
-    .style("stroke", "red")
-    .style("fill", "black")
+    .style("stroke", "black")
+    .style("fill", function(d) {return d3.rgb(255, gbscale(d.S), gbscale(d.S)).toString();})
     .attr("r", function(d) {return d.r;})
     .attr("cx", function(d, i) {return xscale(d.X);})
     .attr("cy", function(d, i) {return yscale(d.Y);})
@@ -178,7 +181,8 @@ function renderVis(newdata) {
     .on("mouseout", function(d){
         d3.select(this)
           .attr("r", function() {return d.r;})
-          .style("fill", "black");
+          .style("fill", "black")
+          .style("fill", function() {return d3.rgb(255, gbscale(d.S), gbscale(d.S)).toString();});
         return tooltip.style("visibility", "hidden");
       })
 

@@ -11,7 +11,6 @@ import (
   "runtime"
   "encoding/json"
   "io/ioutil"
-  "launchpad.net/mgo"
   "github.com/petar/GoLLRB/llrb"
 )
 
@@ -92,34 +91,6 @@ func XYonlyToTree(slice []*XYonly, lessFunc func(a, b interface{}) bool) *llrb.T
     tree.InsertNoReplace(word)
   }
   return tree
-}
-
-type WordCollec []*Word
-func (c WordCollec) Len() int {return len(c)}
-func (c WordCollec) Swap(i, j int) {c[i], c[j] = c[j], c[i]}
-
-type ByPgDensity struct {WordCollec}
-func (c ByPgDensity) Less(i, j int) bool {return c.WordCollec[i].TotalPageDensity() >= c.WordCollec[j].TotalPageDensity()}
-
-type ByCount struct {WordCollec}
-func (c ByCount) Less(i, j int) bool {return c.WordCollec[i].TotalCount() >= c.WordCollec[j].TotalCount()}
-
-func DbWrite(words []*Word) {
-  // open connection to mongodb
-  session, err := mgo.Dial(dbServer)
-  if err != nil {
-    fmt.Println(err)
-  } else {
-    defer session.Close()
-  }
-
-  collection := session.DB(dbName).C(collecName)
-  for _, w := range words {
-    err := collection.Insert(w)
-    if err != nil {
-      panic(err)
-    }
-  }
 }
 
 func NormCounts() (norm, pgnorm, bknorm map[int]int) {
@@ -299,85 +270,6 @@ func NewWord(text string) *Word {
   return &word
 }
 
-func BuildXY(words []*Word, scores []float32, xymapper func(w *Word) (x, y float32)) []*XYonly  {
-  xyonly := make([]*XYonly, len(words))
-  for i, w := range words {
-    x, y := xymapper(w)
-    xyonly[i] = &XYonly{W:w.T, X:x, Y:y, S:scores[i]}
-  }
-  return xyonly
-}
-
-func BkVpden(year string) func(*Word) (x, y float32) {
-  return func(w *Word) (x, y float32) {
-    return w.PageDensity(year), float32(w.C[year].B)
-  }
-}
-
-type Weights struct {
-  Length float32
-  Count float32
-  Pages float32
-  Books float32
-}
-
-type LessFunc func(a, b *Word) bool
-
-func lesslen(a, b *Word) bool {return a.Length() < b.Length()}
-func lesscount(a, b *Word) bool {return a.TotalCount() < b.TotalCount()}
-func lesspages(a, b *Word) bool {return a.TotalPages() < b.TotalPages()}
-func lessbooks(a, b *Word) bool {return a.TotalBooks() < b.TotalBooks()}
-
-func GetMaxes(words []*Word) Weights {
-  max := Max(lesslen, words)
-  l := float32(max.Length())
-  c := float32(max.TotalCount())
-  p := float32(max.TotalPages())
-  b := float32(max.TotalBooks())
-  return Weights{Length:l, Count:c, Pages:p, Books:b}
-}
-
-func Max(less LessFunc, foo []*Word) *Word {
-  max := foo[0]
-  for _, word := range foo[1:] {
-    if less(max, word) {
-      max = word
-    }
-  }
-  return max
-}
-
-type Scorer func(w *Word) (float32, bool)
-
-func WeightedScoreGenerator(year string, weights, maxes Weights) Scorer {
-  return func(w *Word) (float32, bool) {
-     if _, ok := w.C[year]; !ok {
-       return 0, false
-     }
-     var score float32 = 0
-     score += float32(w.Length()) / maxes.Length * weights.Length
-     score += float32(w.C[year].W) / maxes.Count * weights.Count
-     score += float32(w.C[year].P) / maxes.Pages * weights.Pages
-     score += float32(w.C[year].B) / maxes.Books * weights.Books
-     return score, true
-  }
-}
-
-func GetScores(words []*Word, scorer Scorer) ([]*Word, []float32) {
-  scores := make([]float32, 0)
-  scored := make([]*Word, 0)
-
-  for _, word := range words {
-    score, ok := scorer(word)
-    if ok {
-      scores = append(scores, score)
-      scored = append(scored, word)
-    }
-  }
-
-  return scored, scores
-}
-
 func (w *Word) Length() int {
   return len(w.T)
 }
@@ -424,5 +316,63 @@ func (w *Word) TotalBooks() int {
 
 func (w *Word) String() string {
   return fmt.Sprint(w)
+}
+
+////////////////////////////
+// score calculating code //
+////////////////////////////
+func BuildXY(words []*Word, scores []float32, xymapper func(w *Word) (x, y float32)) []*XYonly  {
+  xyonly := make([]*XYonly, len(words))
+  for i, w := range words {
+    x, y := xymapper(w)
+    xyonly[i] = &XYonly{W:w.T, X:x, Y:y, S:scores[i]}
+  }
+  return xyonly
+}
+
+func BkVpden(year string) func(*Word) (x, y float32) {
+  return func(w *Word) (x, y float32) {
+    return w.PageDensity(year), float32(w.C[year].B)
+  }
+}
+
+type Weights struct {
+  Length float32
+  Count float32
+  Pages float32
+  Books float32
+  PageDen float32
+}
+
+type Scorer func(w *Word) (float32, bool)
+
+func WeightedScoreGenerator(year string, weights, maxes Weights) Scorer {
+  return func(w *Word) (float32, bool) {
+     if _, ok := w.C[year]; !ok {
+       return 0, false
+     }
+     var score float32 = 0
+     score += float32(w.Length()) / maxes.Length * weights.Length
+     score += float32(w.C[year].W) / maxes.Count * weights.Count
+     score += float32(w.C[year].P) / maxes.Pages * weights.Pages
+     score += float32(w.C[year].B) / maxes.Books * weights.Books
+     score += float32(w.PageDensity(year)) / maxes.PageDen * weights.PageDen
+     return score, true
+  }
+}
+
+func GetScores(words []*Word, scorer Scorer) ([]*Word, []float32) {
+  scores := make([]float32, 0)
+  scored := make([]*Word, 0)
+
+  for _, word := range words {
+    score, ok := scorer(word)
+    if ok {
+      scores = append(scores, score)
+      scored = append(scored, word)
+    }
+  }
+
+  return scored, scores
 }
 
