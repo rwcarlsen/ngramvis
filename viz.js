@@ -24,11 +24,13 @@ var xOffset = 40
 var yOffset = 40
 
 var data = [];
-var start = 00;
-var num_datums = 1000;
+var start = 0;
+var num_datums = 100;
 var chunk_size = 100; //
 var disp_year = "2008"
-var weights = "1/0/0/0"
+var weights = "0/1/-1/-4"
+var rmin = 3
+var rmax = 10
 
 // tooltip stuff:
 var tooltip = d3.select("#tooltip")
@@ -60,21 +62,28 @@ var viz = d3.select("#viz")
     .attr("stroke","red");
     
 // load external word data - note asynchrous behavior (parallel requests)
-d3.json("/data/reweight/" + disp_year + "/" + weights, function(json) {});
-for (i = start; i < start + num_datums; i += chunk_size) {
-  if (i > start + num_datums) {i = start + num_datums;}
-  d3.json("/data/" + i + "/" + chunk_size, function(json) {renderVis(json);});
+d3.json("/data/reweight/" + disp_year + "/" + weights, function(json) {getData()});
+
+function getData() {
+  for (i = start; i < start + num_datums; i += chunk_size) {
+    if (i > start + num_datums) {i = start + num_datums;}
+    d3.json("/data/" + i + "/" + chunk_size, function(json) {renderVis(json);});
+  }
 }
 
 function renderVis(newdata) {
   var dd;
+  maxscore = d3.max(newdata, function(d) {return d.S})
+  minscore = d3.min(newdata, function(d) {return d.S})
   for (var i in newdata) {
     dd = new Object();
+    s = newdata[i].S
     dd.W = newdata[i].W; // word text
     dd.Y = newdata[i].Y; // y-coordinate: book count
     dd.X = newdata[i].X; // x-coordinate: page density
-    dd.r = newdata[i].S + 4; // radius - proportional to score
-    dd.rbig = 1.8 * (newdata[i].S + 4); // mouseover radius
+    dd.S = newdata[i].S; // x-coordinate: page density
+    dd.r = rmin + (s - minscore) / (maxscore - minscore) * (rmax - rmin); // radius - proportional to score
+    dd.rbig = 1.8 * dd.r; // mouseover radius
     data.push(dd);
   }
 
@@ -159,7 +168,8 @@ function renderVis(newdata) {
           .style("visibility", "visible")
           .style("top", event.pageY+"px").style("left",(event.pageX+15)+"px")
           .text(function() {
-            return d.W + " : den=" + String(d.X) + ", #bks=" + String(d.Y);
+            return d.W + " : den=" + String(d.X) + ", #bks=" + String(d.Y)
+                       + ", score=" + String(d.S)
           });
     })
     .on("mousemove", function(){
