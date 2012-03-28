@@ -28,7 +28,7 @@ var start = 00;
 var num_datums = 50;
 var chunk_size = 50; //
 var disp_year = "2008"
-var sort_by = "pden"
+var weights = "0/0/0/0"
 
 // tooltip stuff:
 var tooltip = d3.select("#tooltip")
@@ -60,31 +60,21 @@ var viz = d3.select("#viz")
     .attr("stroke","red");
     
 // load external word data - note asynchrous behavior (parallel requests)
-d3.json("/data/sort/" + sort_by, function(json) {});
+d3.json("/data/reweight/" + disp_year + "/" + weights, function(json) {});
 for (i = start; i < start + num_datums; i += chunk_size) {
   if (i > start + num_datums) {i = start + num_datums;}
   d3.json("/data/" + i + "/" + chunk_size, function(json) {renderVis(json);});
-}
-
-// This function calculates page-density
-function pd(entry) {
-  if (entry.P == 0) {return 0;}
-  return entry.W / entry.P;
 }
 
 function renderVis(newdata) {
   var dd;
   for (var i in newdata) {
     dd = new Object();
-    if (newdata[i].C[disp_year] == undefined) {
-      continue;
-    }
-    dd.W = newdata[i].T; // word text
-    dd.Y = newdata[i].C[disp_year].B; // y-coordinate: book count
-    dd.X = pd(newdata[i].C[disp_year]); // x-coordinate: page density
-    dd.r = Math.sqrt(4 * newdata[i].T.length); // radius - proportional to word length
-    dd.rbig = Math.sqrt(8 * newdata[i].T.length); // mouseover radius
-    dd.C = newdata[i].C[disp_year].W; // word count
+    dd.W = newdata[i].W; // word text
+    dd.Y = newdata[i].Y; // y-coordinate: book count
+    dd.X = newdata[i].X; // x-coordinate: page density
+    dd.r = newdata[i].S; // radius - proportional to score
+    dd.rbig = newdata[i].S; // mouseover radius
     data.push(dd);
   }
 
@@ -169,8 +159,7 @@ function renderVis(newdata) {
           .style("visibility", "visible")
           .style("top", event.pageY+"px").style("left",(event.pageX+15)+"px")
           .text(function() {
-            return d.W + " : den=" + String(d.X) + ", #bks=" + String(d.Y)
-                       + " \n cnt=" + String(d.C);
+            return d.W + " : den=" + String(d.X) + ", #bks=" + String(d.Y);
           });
     })
     .on("mousemove", function(){

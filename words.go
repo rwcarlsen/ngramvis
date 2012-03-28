@@ -58,7 +58,7 @@ func UnmarshalJsonList(file_name string) (words []*Word) {
   return
 }
 
-func TreeToSlice(tree *llrb.Tree) []*Word {
+func TreeToWords(tree *llrb.Tree) []*Word {
   words := make([]*Word, tree.Len())
   count := 0
   for word := range tree.IterDescend() {
@@ -68,7 +68,25 @@ func TreeToSlice(tree *llrb.Tree) []*Word {
   return words
 }
 
-func SliceToTree(slice []*Word, lessFunc func(a, b interface{}) bool) *llrb.Tree {
+func WordsToTree(slice []*Word, lessFunc func(a, b interface{}) bool) *llrb.Tree {
+  tree := llrb.New(lessFunc)
+  for _, word := range slice {
+    tree.InsertNoReplace(word)
+  }
+  return tree
+}
+
+func TreeToXYonly(tree *llrb.Tree) []*XYonly {
+  words := make([]*XYonly, tree.Len())
+  count := 0
+  for word := range tree.IterDescend() {
+    words[count] = word.(*XYonly)
+    count++
+  }
+  return words
+}
+
+func XYonlyToTree(slice []*XYonly, lessFunc func(a, b interface{}) bool) *llrb.Tree {
   tree := llrb.New(lessFunc)
   for _, word := range slice {
     tree.InsertNoReplace(word)
@@ -184,7 +202,7 @@ func ProcessRaw() {
       break
     }
   }
-  words := TreeToSlice(tree)
+  words := TreeToWords(tree)
   MarshalJsonList(jsonWords, words)
 }
 
@@ -290,6 +308,12 @@ func BuildXY(words []*Word, scores []float32, xymapper func(w *Word) (x, y float
   return xyonly
 }
 
+func BkVpden(year string) func(*Word) (x, y float32) {
+  return func(w *Word) (x, y float32) {
+    return w.PageDensity(year), float32(w.C[year].B)
+  }
+}
+
 type Weights struct {
   Length float32
   Count float32
@@ -297,26 +321,27 @@ type Weights struct {
   Books float32
 }
 
-type LessFunc func(a, b interface{}) bool
+type LessFunc func(a, b *Word) bool
 
-func lesslen(a, b interface{}) {return a.(*Word).Length() < b.(*Word).Length()}
-func lesscount(a, b interface{}) {return a.(*Word).TotalCount() < b.(*Word).TotalCount()}
-func lesspages(a, b interface{}) {return a.(*Word).TotalPages() < b.(*Word).TotalPages()}
-func lessbooks(a, b interface{}) {return a.(*Word).TotalBooks() < b.(*Word).TotalBooks()}
+func lesslen(a, b *Word) bool {return a.Length() < b.Length()}
+func lesscount(a, b *Word) bool {return a.TotalCount() < b.TotalCount()}
+func lesspages(a, b *Word) bool {return a.TotalPages() < b.TotalPages()}
+func lessbooks(a, b *Word) bool {return a.TotalBooks() < b.TotalBooks()}
 
 func GetMaxes(words []*Word) Weights {
-  l := Max(lesslen, words...)
-  c := Max(lesscount, words...)
-  p := Max(lesspages, words...)
-  b := Max(lessbooks, words...)
+  max := Max(lesslen, words)
+  l := float32(max.Length())
+  c := float32(max.TotalCount())
+  p := float32(max.TotalPages())
+  b := float32(max.TotalBooks())
   return Weights{Length:l, Count:c, Pages:p, Books:b}
 }
 
-func Max(less LessFunc, foo... interface{}) interface{} {
-  max := foo[i]
-  for i, _ := range foo[1:] {
-    if less(max, foo[i]) {
-      max = foo
+func Max(less LessFunc, foo []*Word) *Word {
+  max := foo[0]
+  for _, word := range foo[1:] {
+    if less(max, word) {
+      max = word
     }
   }
   return max
@@ -329,24 +354,24 @@ func WeightedScoreGenerator(year string, weights, maxes Weights) Scorer {
      if _, ok := w.C[year]; !ok {
        return 0, false
      }
-     score := 0
-     score += w.Length() / maxes["len"] * weights["len"]
-     score += w.C[year].W / maxes["count"] * weights["count"]
-     score += w.C[year].P / maxes["pages"] * weights["pages"]
-     score += w.C[year].B / maxes["books"] * weights["books"]
+     var score float32 = 0
+     score += float32(w.Length()) / maxes.Length * weights.Length
+     score += float32(w.C[year].W) / maxes.Count * weights.Count
+     score += float32(w.C[year].P) / maxes.Pages * weights.Pages
+     score += float32(w.C[year].B) / maxes.Books * weights.Books
      return score, true
   }
 }
 
 func GetScores(words []*Word, scorer Scorer) ([]*Word, []float32) {
-  scores := make([]float32, len(words))
-  scored := make([]*Word, len(words))
+  scores := make([]float32, 0)
+  scored := make([]*Word, 0)
 
-  for i, word := range words {
+  for _, word := range words {
     score, ok := scorer(word)
     if ok {
-      scores[i] = score
-      scored[i] = word
+      scores = append(scores, score)
+      scored = append(scored, word)
     }
   }
 
@@ -365,13 +390,11 @@ func (w *Word) TotalPageDensity() float32 {
   return float32(w.TotalCount()) / float32(w.TotalPages())
 }
 
-func (w *Word) PageDensity(year int) float32 {
-  styear := strconv.Itoa(year)
-
-  _, ok := w.C[styear]
+func (w *Word) PageDensity(year string) float32 {
+  _, ok := w.C[year]
   if !ok {return -1}
 
-  return float32(w.C[styear].W) / float32(w.C[styear].P)
+  return float32(w.C[year].W) / float32(w.C[year].P)
 }
 
 func (w *Word) TotalCount() int {

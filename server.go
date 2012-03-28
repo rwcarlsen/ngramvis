@@ -52,6 +52,8 @@ func vizScriptHandler(w http.ResponseWriter, req *http.Request) {
 
 func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
   words := UnmarshalJsonList(jsonWords)
+  data := make([]*XYonly, 0)
+
   var weights, maxes Weights
   maxes = GetMaxes(words)
 
@@ -66,39 +68,49 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
 
     rangeText := strings.Split(path, "/")
     if rangeText[2] == "reweight" {
-      length, _ := strconv.ParseFloat(rangeText[3], 32)
-      count, _ := strconv.ParseFloat(rangeText[4], 32)
-      pages, _ := strconv.ParseFloat(rangeText[5], 32)
-      books, _ := strconv.ParseFloat(rangeText[6], 32)
-      
+      fmt.Println("reweighting...")
+      year := rangeText[3]
+      length, _ := strconv.ParseFloat(rangeText[4], 32)
+      count, _ := strconv.ParseFloat(rangeText[5], 32)
+      pages, _ := strconv.ParseFloat(rangeText[6], 32)
+      books, _ := strconv.ParseFloat(rangeText[7], 32)
+
       weights.Length = float32(length)
       weights.Count = float32(count)
       weights.Pages = float32(pages)
       weights.Books = float32(books)
+
+      // get score calcing function
+      scorer := WeightedScoreGenerator(year, weights, maxes)
+
+      fmt.Println("generating scores...")
+      // generate scores for words if possible
+      scored, scores := GetScores(words, scorer)
+
+      fmt.Println("building XYonly structs...")
+      // convert to XYonly structs
+      data = BuildXY(scored, scores, BkVpden(year))
+
+      // sort it
+      fmt.Println("sorting...")
+      data = TreeToXYonly(XYonlyToTree(data, func(a, b interface{}) bool {
+        return a.(*XYonly).S <= b.(*XYonly).S
+      }))
+      fmt.Println("[]XYonly length = ", len(data))
+
       return
     }
 
-    yearText := rangeText[2]
-    year, err := strconv.Atoi(rangeText[2])
-    if err != nil {
-      panic(err)
-    }
-    lower, err := strconv.Atoi(rangeText[3])
-    if err != nil {
-      panic(err)
-    }
-    numWanted, err := strconv.Atoi(rangeText[4])
-    if err != nil {
-      panic(err)
-    }
+    fmt.Println("filling data request...")
 
-    scorer := WeightedScoreGenerator(yearText, weights, maxes)
-    scored, scores := GetScores(words, scorer)
-    data := BuildXY(scored, scores, BkVpden)
-
-    data = TreeToSlice(SliceToTree(data, func(a, b interface{}) bool {
-      return a.(*XYonly).S <= b.(*XYonly).S
-    }))
+    lower, err := strconv.Atoi(rangeText[2])
+    if err != nil {
+      panic(err)
+    }
+    numWanted, err := strconv.Atoi(rangeText[3])
+    if err != nil {
+      panic(err)
+    }
 
     marshaled, err := json.Marshal(data[lower:lower + numWanted])
     if err != nil {
