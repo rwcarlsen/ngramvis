@@ -21,7 +21,7 @@ const (
 )
 
 const (
-  ngramsDir = "/home/ealexand/Desktop"
+  ngramsDir = "/home/robert/ngrams"
   ngramsBase = "grams"
   totsBase = "tots"
   ngramsExt = "csv"
