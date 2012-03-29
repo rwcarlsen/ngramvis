@@ -80,11 +80,16 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       books, _ := strconv.ParseFloat(rangeText[7], 32)
       pageden, _ := strconv.ParseFloat(rangeText[8], 32)
 
-      weights.Length = float32(length)
-      weights.Count = float32(count)
-      weights.Pages = float32(pages)
-      weights.Books = float32(books)
-      weights.PageDen = float32(pageden)
+      tot := float32(length + count + pages + books + pageden)
+      if tot == 0 {
+        tot = 1
+      }
+
+      weights.Length = float32(length) / tot
+      weights.Count = float32(count) / tot
+      weights.Pages = float32(pages) / tot
+      weights.Books = float32(books) / tot
+      weights.PageDen = float32(pageden) / tot
       fmt.Println("new weights: ", length, count, pages, books, pageden)
 
       fmt.Println("scoring, building XYonly, and sorting...")
@@ -96,7 +101,7 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       scored, scores := GetScores(words, scorer)
 
       // convert to XYonly structs
-      data = BuildXY(scored, scores, BkVpden(year))
+      data = BuildXY(scored, scores, Pden(year), Bk(year))
 
       // sort it
       data = TreeToXYonly(XYonlyToTree(data, func(a, b interface{}) bool {
@@ -113,6 +118,9 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
     numWanted, err := strconv.Atoi(rangeText[3])
     if err != nil {
       panic(err)
+    }
+    if numWanted > len(data) {
+      numWanted = len(data)
     }
 
     marshaled, err := json.Marshal(data[lower:lower + numWanted])

@@ -24,13 +24,12 @@ var data = [];
 
 //   length / count / pages / books / pg-den
 var weights = "1/0/0/0/0"
-var disp_year = "2008"
-var start = 0;
-var num_datums = 1000;
-var chunk_size = 200; //
+var start_year = 1980;
+var num_datums = 500;
 var rmin = 3
 var rmax = 10
 var pad = rmax + 10 //padding around the graphing space
+var transdur = 1000;
 
 // tooltip stuff:
 var tooltip = d3.select("#tooltip")
@@ -45,7 +44,14 @@ var tooltip = d3.select("#tooltip")
 var viz = d3.select("#viz")
   .append("svg:svg")
   .attr("width", w)
-  .attr("height", h);
+  .attr("height", h)
+  .on("click", function(){
+    prevframe();
+  })
+  .on("contextmenu", function(){
+    nextframe()
+    d3.event.preventDefault();
+  });
 
   // Axes 
   viz.append("svg:line")
@@ -61,40 +67,49 @@ var viz = d3.select("#viz")
     .attr("y2",h-yOffset)
     .attr("stroke","red");
     
-// load external word data - note asynchrous behavior (parallel requests)
-d3.json("/data/reweight/" + disp_year + "/" + weights, function(json) {getData()});
 
-function getData() {
-  for (i = start; i < start + num_datums; i += chunk_size) {
-    if (i > start + num_datums) {i = start + num_datums;}
-    d3.json("/data/" + i + "/" + chunk_size, function(json) {renderVis(json);});
-  }
+// calculates the radius of a datum
+function getr(d, minscore, maxscore) {
+  return rmin + (d.S - minscore) / (maxscore - minscore + 0.001) * (rmax - rmin);
+}
+
+// calculates the mouseover radius of a datum
+function getrbig(d, minscore, maxscore) {
+  return getr(d, minscore, maxscore) + 2;
+}
+
+// key function for d3 data binding
+function wordtext(d) {
+  return d.W;
+}
+
+// load external word data - note asynchrous behavior (parallel requests)
+var frame = -1;
+nextframe();
+function nextframe() {
+  frame += 1;
+  d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
+}
+function prevframe() {
+  frame -= 1;
+  d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
+}
+
+function getData(ndatums) {
+  d3.json("/data/" + 0 + "/" + ndatums, function(json) {renderVis(json);});
 }
 
 function renderVis(newdata) {
-  var dd;
-  maxscore = d3.max(newdata.concat(data), function(d) {return d.S})
-  minscore = d3.min(newdata.concat(data), function(d) {return d.S})
+  minscore = d3.min(newdata, function(d) {return d.S})
+  maxscore = d3.max(newdata, function(d) {return d.S})
   gbscale = d3.scale.log().domain([minscore, maxscore]).range([255, 0])
-
-  for (var i in newdata) {
-    dd = new Object();
-    s = newdata[i].S
-    dd.W = newdata[i].W; // word text
-    dd.Y = newdata[i].Y; // y-coordinate: book count
-    dd.X = newdata[i].X; // x-coordinate: page density
-    dd.S = newdata[i].S; // x-coordinate: page density
-    dd.r = rmin + (s - minscore) / (maxscore - minscore) * (rmax - rmin); // radius - proportional to score
-    dd.rbig = dd.r + 2; // mouseover radius
-    data.push(dd);
-  }
+  data = newdata;
 
   // calc max/min and calibrate axis scales
-  bkmin = d3.min(data, function(d) {return d.Y;});
-  bkmax = d3.max(data, function(d) {return d.Y;});
-
-  dmin = d3.min(data, function(d) {return d.X;});
-  dmax = d3.max(data, function(d) {return d.X;})
+  bkmin = 90
+  bkmax = 150000
+  dmin = 1
+  dmax = 50
 
   var xscale = d3.scale.log()
    .domain([dmin, dmax])
@@ -150,23 +165,27 @@ function renderVis(newdata) {
   var circle = viz.selectAll("circle")
 
   // update existing circles to updated scales
-  circle
+  circle.data(data, wordtext)
+    .transition()
+    .duration(transdur)
+    .delay(function(i, d) {return i * 10;})
     .attr("cx", function(d, i) {return xscale(d.X);})
     .attr("cy", function(d, i) {return yscale(d.Y);})
     .style("fill", function(d) {return d3.rgb(255, gbscale(d.S), gbscale(d.S)).toString();})
+    .attr("r", function(d) {return getr(d, minscore, maxscore);});
 
   // add new circles
-  circle.data(data)
+  circle.data(data, wordtext)
     .enter().append("svg:circle")
-    .style("stroke", "black")
-    .style("fill", function(d) {return d3.rgb(255, gbscale(d.S), gbscale(d.S)).toString();})
-    .attr("r", function(d) {return d.r;})
+    .attr("r", 0)
     .attr("cx", function(d, i) {return xscale(d.X);})
     .attr("cy", function(d, i) {return yscale(d.Y);})
+    .style("stroke", "black")
+    .style("fill", function(d) {return d3.rgb(255, gbscale(d.S), gbscale(d.S)).toString();})
     .on("mouseover", function(d) {
         d3.select(this)
           .style("fill", "blue")
-          .attr("r", function() {return d.rbig;});
+          .attr("r", function() {return getrbig(d, minscore, maxscore);});
         return tooltip
           .style("visibility", "visible")
           .style("top", event.pageY+"px").style("left",(event.pageX+15)+"px")
@@ -177,14 +196,22 @@ function renderVis(newdata) {
     })
     .on("mousemove", function(){
       return tooltip;
-    })
-    .on("mouseout", function(d){
-        d3.select(this)
-          .attr("r", function() {return d.r;})
+    }) .on("mouseout", function(d){ d3.select(this)
+          .attr("r", function() {return getr(d, minscore, maxscore);})
           .style("fill", "black")
           .style("fill", function() {return d3.rgb(255, gbscale(d.S), gbscale(d.S)).toString();});
         return tooltip.style("visibility", "hidden");
       })
+    .transition()
+    .duration(transdur)
+    .attr("r", function(d) {return getr(d, minscore, maxscore);});
 
+  // remove words that are not longer to be displayed
+  circle.data(data, wordtext).exit()
+    .transition()
+    .duration(transdur)
+    .attr("r", 0)
+    .transition()
+    .remove();
 }
 
