@@ -135,23 +135,8 @@ function prevframe() {
   frame -= 1;
   d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
 }
-
-/*function reweight(form) {
-            var weights = (form.wordlength/10.0).toString() + "/"
-                        + (form.count/10.0).toString() + "/"
-                        + (form.pages/10.0).toString() + "/"
-                        + (form.books/10.0).toString() + "/"
-                        + (form.pd/10.0).toString();
-            d3.json("/data/reweight/" + 1990 + "/" + weights, function(json) {getData(num_datums);});
-        }*/
         
 function reweight(v, changed) {
-            /*var weights = (v/10.0).toString() + "/"
-                        + (.9).toString() + "/"
-                        + (v/10.0).toString() + "/"
-                        + (v/10.0).toString() + "/"
-                        + (v/10.0).toString();
-            d3.json("/data/reweight/" + 1990 + "/" + weights, function(json) {getData(num_datums);});*/
             var w = weights.split("/");
             w[changed] = (v/10.0).toString();
             weights = w.join("/");
