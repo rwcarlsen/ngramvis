@@ -53,6 +53,47 @@ var viz = d3.select("#viz")
     d3.event.preventDefault();
   });
 
+var wordlengthSlider = d3.select("#wordlengthSlider")
+  .append("input")
+    .attr("name","wordlength")
+    .attr("type","range")
+    .attr("min",-10)
+    .attr("max",10)
+    .attr("value",10)
+    .on("change",function(d) {return reweight(this.value,0);})
+var countSlider = d3.select("#countSlider")
+  .append("input")
+    .attr("name","count")
+    .attr("type","range")
+    .attr("min",-10)
+    .attr("max",10)
+    .attr("value",0)
+    .on("change",function(d) {return reweight(this.value,1);})
+var pagesSlider = d3.select("#pagesSlider")
+  .append("input")
+    .attr("name","pages")
+    .attr("type","range")
+    .attr("min",-10)
+    .attr("max",10)
+    .attr("value",0)
+    .on("change",function(d) {return reweight(this.value,2);})
+var booksSlider = d3.select("#booksSlider")
+  .append("input")
+    .attr("name","books")
+    .attr("type","range")
+    .attr("min",-10)
+    .attr("max",10)
+    .attr("value",0)
+    .on("change",function(d) {return reweight(this.value,3);})
+var pdSlider = d3.select("#pdSlider")
+  .append("input")
+    .attr("name","pd")
+    .attr("type","range")
+    .attr("min",-10)
+    .attr("max",10)
+    .attr("value",0)
+    .on("change",function(d) {return reweight(this.value,4);})
+
   // Axes 
   viz.append("svg:line")
     .attr("x1",xOffset)
@@ -94,6 +135,28 @@ function prevframe() {
   frame -= 1;
   d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
 }
+
+/*function reweight(form) {
+            var weights = (form.wordlength/10.0).toString() + "/"
+                        + (form.count/10.0).toString() + "/"
+                        + (form.pages/10.0).toString() + "/"
+                        + (form.books/10.0).toString() + "/"
+                        + (form.pd/10.0).toString();
+            d3.json("/data/reweight/" + 1990 + "/" + weights, function(json) {getData(num_datums);});
+        }*/
+        
+function reweight(v, changed) {
+            /*var weights = (v/10.0).toString() + "/"
+                        + (.9).toString() + "/"
+                        + (v/10.0).toString() + "/"
+                        + (v/10.0).toString() + "/"
+                        + (v/10.0).toString();
+            d3.json("/data/reweight/" + 1990 + "/" + weights, function(json) {getData(num_datums);});*/
+            var w = weights.split("/");
+            w[changed] = (v/10.0).toString();
+            weights = w.join("/");
+            d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
+        }
 
 function getData(ndatums) {
   d3.json("/data/" + 0 + "/" + ndatums, function(json) {renderVis(json);});
