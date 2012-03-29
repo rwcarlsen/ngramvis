@@ -137,8 +137,7 @@ func NormCounts() (norm, pgnorm, bknorm map[int]int) {
   return
 }
 
-func lessWC(a, b interface{}) bool {
-  return a.(*Word).TotalCount() <= b.(*Word).TotalCount()
+func lessWC(a, b interface{}) bool { return a.(*Word).TotalCount() <= b.(*Word).TotalCount()
 }
 
 func ProcessRaw() {
@@ -321,18 +320,25 @@ func (w *Word) String() string {
 ////////////////////////////
 // score calculating code //
 ////////////////////////////
-func BuildXY(words []*Word, scores []float32, xymapper func(w *Word) (x, y float32)) []*XYonly  {
+func BuildXY(words []*Word, scores []float32, xmapper, ymapper func(w *Word) float32) []*XYonly  {
   xyonly := make([]*XYonly, len(words))
   for i, w := range words {
-    x, y := xymapper(w)
+    x := xmapper(w)
+    y := ymapper(w)
     xyonly[i] = &XYonly{W:w.T, X:x, Y:y, S:scores[i]}
   }
   return xyonly
 }
 
-func BkVpden(year string) func(*Word) (x, y float32) {
-  return func(w *Word) (x, y float32) {
-    return w.PageDensity(year), float32(w.C[year].B)
+func Bk(year string) func(*Word) float32 {
+  return func(w *Word) float32 {
+    return float32(w.C[year].B)
+  }
+}
+
+func Pden(year string) func(*Word) float32 {
+  return func(w *Word) float32 {
+    return w.PageDensity(year)
   }
 }
 
@@ -345,6 +351,10 @@ type Weights struct {
 }
 
 type Scorer func(w *Word) (float32, bool)
+type ScoredWord struct {
+  W *Word
+  S float32
+}
 
 func WeightedScoreGenerator(year string, weights, maxes Weights) Scorer {
   return func(w *Word) (float32, bool) {
@@ -361,18 +371,50 @@ func WeightedScoreGenerator(year string, weights, maxes Weights) Scorer {
   }
 }
 
-func GetScores(words []*Word, scorer Scorer) ([]*Word, []float32) {
-  scores := make([]float32, 0)
-  scored := make([]*Word, 0)
+func GetScores(words []*Word, scorer Scorer) (scored []*Word, scores []float32) {
+  scores = make([]float32, 0)
+  scored = make([]*Word, 0)
 
+  NCPU := runtime.NumCPU()
+  runtime.GOMAXPROCS(NCPU)
+  percpu := int(float32(len(words)) / float32(NCPU) + 1)
+  ch := make(chan *ScoredWord, 100)
+  dead := make(chan bool)
+  for i := 0; i < NCPU; i++ {
+    start := i * percpu
+    end := start + percpu
+    if end > len(words) {
+      end = len(words)
+    }
+    fmt.Println("sending ", end - start, " words to goroutine.")
+    go calcScores(words[start:end], scorer, ch, dead)
+  }
+
+  done := false
+  deadcount := 0
+  for !done {
+    select {
+      case val := <-ch:
+        scores = append(scores, val.S)
+        scored = append(scored, val.W)
+      case <-dead:
+        deadcount++
+        if deadcount == NCPU {
+          done = true
+        }
+    }
+  }
+  return
+}
+
+func calcScores(words []*Word, scorer Scorer, ch chan *ScoredWord, dead chan bool) {
+  defer func() {dead <- true}()
   for _, word := range words {
     score, ok := scorer(word)
     if ok {
-      scores = append(scores, score)
-      scored = append(scored, word)
+      sw := ScoredWord{W:word, S:score}
+      ch <- &sw
     }
   }
-
-  return scored, scores
 }
 

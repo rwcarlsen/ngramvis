@@ -81,6 +81,9 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       pageden, _ := strconv.ParseFloat(rangeText[8], 32)
 
       tot := float32(length + count + pages + books + pageden)
+      if tot == 0 {
+        tot = 1
+      }
 
       weights.Length = float32(length) / tot
       weights.Count = float32(count) / tot
@@ -98,7 +101,7 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       scored, scores := GetScores(words, scorer)
 
       // convert to XYonly structs
-      data = BuildXY(scored, scores, BkVpden(year))
+      data = BuildXY(scored, scores, Pden(year), Bk(year))
 
       // sort it
       data = TreeToXYonly(XYonlyToTree(data, func(a, b interface{}) bool {
