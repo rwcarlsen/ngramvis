@@ -118,6 +118,11 @@ Outcomes/Deliverables
 
 **Project 2:**
 
+  * Our deliverable will be an upgraded version of our visualization from
+    project 1, tailored to achieve the goals listed above.
+
+  * We will also submit a 2-4 page paper describing the design and implementation
+    process, as well as an evaluation of the tool's usefulness.
 
 
 Resources
@@ -149,7 +154,13 @@ Evaluation Plan
 
 **Project 2:**
 
-  
+  Whereas our evaluation criteria for the first project were mainly based on creating
+  a functional prototype, for this project we will take a more critical look at our
+  design based on the principles that we have learned in this class. We hope to have
+  a tool that exposes interesting characteristics of and/or relationships between the
+  data. We will also judge our success based on the amount that the interactive
+  functions and DOI function allow users to customize the view to find insights
+  relevant to their particular interests.
 
 Initial Reading
 ----------------
