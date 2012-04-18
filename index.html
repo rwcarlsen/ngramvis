@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>Books vs. Page Density</title>
+    <script type="text/javascript" src="http://mbostock.github.com/d3/d3.js"></script>
+    <!--<script language="JavaScript">
+        function reweight(form) {
+            var weights = (form.wordlength/10.0).toString() + "/"
+                        + (form.count/10.0).toString() + "/"
+                        + (form.pages/10.0).toString() + "/"
+                        + (form.books/10.0).toString() + "/"
+                        + (form.pd/10.0).toString();
+            d3.json("/data/reweight/" + 1990 + "/" + weights, function(json) {getData(num_datums);});
+        }
+    </script>-->
+  </head>
+
+  <body>
+    <h1>Hello from Go!</h1>
+    <div id="test"></div>
+    <!--<div id="slidersTest">
+        <form>
+            <input name="wordlength" type="range" min="-10" max="10" value="0">
+            <input name="count" type="range" min="-10" max="10" value="0">
+            <input name="pages" type="range" min="-10" max="10" value="0">
+            <input name="books" type="range" min="-10" max="10" value="0">
+            <input name="pd" type="range" min="-10" max="10" value="0">
+            <input name="button" type="button" value="Reweight" onclick="reweight(this.form);">
+        </form>
+    </div>-->
+    <div id="wordlengthSlider">Word length: </div>
+    <div id="countSlider">Count:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+    <div id="pagesSlider">Pages:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+    <div id="booksSlider">Books:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+    <div id="pdSlider">Page Density:</div>
+    <div id="tooltip"></div>
+    <div id="viz"></div>
+    <script type="text/javascript" src="viz/viz.js"></script>
+  </body>
+</html>
