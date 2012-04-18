@@ -8,6 +8,7 @@ import (
   "fmt"
   "net/http"
   "encoding/json"
+  "math"
 )
 
 const (
@@ -56,10 +57,10 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
 
   var weights, maxes Weights
   maxes.Length = 12 * 1.333333
-  maxes.Count = 1e7 * .15256
+  maxes.Count = 1e7 * .15256 * 430
   maxes.Pages = 1e7 * 2.7316
-  maxes.Books = 1e5 * 6.6948
-  maxes.PageDen = 17 * 1.05334
+  maxes.Books = 1e5 * 6.6948 * 0.162
+  maxes.PageDen = 17 * 1.05334 * 1.123
 
 
   return func(w http.ResponseWriter, req *http.Request) {
@@ -74,13 +75,13 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
     rangeText := strings.Split(path, "/")
     if rangeText[2] == "reweight" {
       year := rangeText[3]
-      length, _ := strconv.ParseFloat(rangeText[4], 32)
-      count, _ := strconv.ParseFloat(rangeText[5], 32)
-      pages, _ := strconv.ParseFloat(rangeText[6], 32)
-      books, _ := strconv.ParseFloat(rangeText[7], 32)
-      pageden, _ := strconv.ParseFloat(rangeText[8], 32)
+      length, _  := strconv.ParseFloat(rangeText[4], 32);
+      count, _   := strconv.ParseFloat(rangeText[5], 32);
+      pages, _   := strconv.ParseFloat(rangeText[6], 32);
+      books, _   := strconv.ParseFloat(rangeText[7], 32);
+      pageden, _ := strconv.ParseFloat(rangeText[8], 32);
 
-      tot := float32(length + count + pages + books + pageden)
+      tot := float32(math.Abs(length) + math.Abs(count) + math.Abs(pages) + math.Abs(books) + math.Abs(pageden))
       if tot == 0 {
         tot = 1
       }

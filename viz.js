@@ -23,8 +23,8 @@ var yOffset = 40
 var data = [];
 
 //   length / count / pages / books / pg-den
-var weights = "1/0/0/0/0"
-var start_year = 1980;
+var weights = "0/0/0/0/0"
+var start_year = 1990;
 var num_datums = 500;
 var rmin = 3
 var rmax = 10
@@ -59,7 +59,7 @@ var wordlengthSlider = d3.select("#wordlengthSlider")
     .attr("type","range")
     .attr("min",-10)
     .attr("max",10)
-    .attr("value",10)
+    .attr("value",0)
     .on("change",function(d) {return reweight(this.value,0);})
 var countSlider = d3.select("#countSlider")
   .append("input")
@@ -137,11 +137,11 @@ function prevframe() {
 }
         
 function reweight(v, changed) {
-            var w = weights.split("/");
-            w[changed] = (v/10.0).toString();
-            weights = w.join("/");
-            d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
-        }
+  var w = weights.split("/");
+  w[changed] = String(v / 10.0);
+  weights = w.join("/");
+  d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
+}
 
 function getData(ndatums) {
   d3.json("/data/" + 0 + "/" + ndatums, function(json) {renderVis(json);});
@@ -150,11 +150,11 @@ function getData(ndatums) {
 function renderVis(newdata) {
   minscore = d3.min(newdata, function(d) {return d.S})
   maxscore = d3.max(newdata, function(d) {return d.S})
-  gbscale = d3.scale.log().domain([minscore, maxscore]).range([255, 0])
+  gbscale = d3.scale.linear().domain([minscore, maxscore]).range([255, 0])
   data = newdata;
 
   // calc max/min and calibrate axis scales
-  bkmin = 90
+  bkmin = 40
   bkmax = 150000
   dmin = 1
   dmax = 50
