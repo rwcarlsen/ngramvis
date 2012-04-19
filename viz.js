@@ -326,9 +326,9 @@ function updateViz(data) {
         return tooltip
           .style("visibility", "visible")
           .style("top", event.pageY+"px").style("left",(event.pageX+15)+"px")
-          .text(function() {
-            return d.W + " : den=" + String(d.X) + ", #bks=" + String(d.Y)
-                       + ", score=" + String(d.S)
+          .html(function() {
+            return "\"" + d.W + "\"<br />den=" + d.X.toFixed(3) + "<br />#bks=" + String(d.Y)
+                       + "<br />score=" + d.S.toFixed(3)
           });
     })
     .on("mousemove", function(){
