@@ -159,79 +159,47 @@ function initAxes() {
 
 }
 
+var vizTitle = d3.select("#vizTitle")
+  .attr("style","width:"+vizw+"px; text-align:center; font-size:300%;")
+  .text("Books vs. Page Density")
+
 // Define Degree of Interest sliders
 var doiSliders = d3.select("#doiSliders");
-doiSliders
-  .append("input")
-    .attr("name","wordlength")
-    .attr("type","range")
-    .attr("min",-10)
-    .attr("max",10)
-    .attr("value",0)
-    .attr("style","width:"+doiSliderWidth+"px; vertical-align:middle")
-    .on("change",function(d) {return reweight(this.value,0);})
-doiSliders.append("sliderLabel").text(" Word Length");
-doiSliders.append("br");
-doiSliders
-  .append("input")
-    .attr("name","count")
-    .attr("type","range")
-    .attr("min",-10)
-    .attr("max",10)
-    .attr("value",0)
-    .attr("style","width:"+doiSliderWidth+"px; vertical-align:middle")
-    .on("change",function(d) {return reweight(this.value,1);})
-doiSliders.append("sliderLabel").text(" Count");
-doiSliders.append("br");
-doiSliders
-  .append("input")
-    .attr("name","pages")
-    .attr("type","range")
-    .attr("min",-10)
-    .attr("max",10)
-    .attr("value",0)
-    .attr("style","width:"+doiSliderWidth+"px; vertical-align:middle")
-    .on("change",function(d) {return reweight(this.value,2);})
-doiSliders.append("sliderLabel").text(" # Pages");
-doiSliders.append("br");
-doiSliders
-  .append("input")
-    .attr("name","books")
-    .attr("type","range")
-    .attr("min",-10)
-    .attr("max",10)
-    .attr("value",0)
-    .attr("style","width:"+doiSliderWidth+"px; vertical-align:middle")
-    .on("change",function(d) {return reweight(this.value,3);})
-doiSliders.append("sliderLabel").text(" # Books");
-doiSliders.append("br");
-doiSliders
-  .append("input")
-    .attr("name","pd")
-    .attr("type","range")
-    .attr("min",-10)
-    .attr("max",10)
-    .attr("value",0)
-    .attr("style","width:"+doiSliderWidth+"px; vertical-align:middle")
-    .on("change",function(d) {return reweight(this.value,4);})
-doiSliders.append("sliderLabel").text(" Page Density");
+
+function addDOIslider(idName, displayName, i) {
+  doiSliders.append("input")
+      .attr("name",idName)
+      .attr("type","range")
+      .attr("min",-10)
+      .attr("max",10)
+      .attr("value",0)
+      .attr("style","width:"+doiSliderWidth+"px; vertical-align:middle")
+      .on("change",function(d) {return reweight(this.value,i);});
+  doiSliders.append("sliderLabel").text(" "+displayName);
+  doiSliders.append("br");
+}
+
+addDOIslider("wordlength","Word Length",0);
+addDOIslider("count","Count",1);
+addDOIslider("pages","# Pages",2);
+addDOIslider("books","# Books",3);
+addDOIslider("pd","Page Density",4);
 
 // Define year slider
 var yearSlider = d3.select("#yearSlider")
-  .attr("style","width:"+yearSliderWidth+"px");
+  .attr("style","width:"+vizw+"px; text-align:center");
 yearSlider.append("div")
   .attr("id","yearLabel")
   .text(currYear)
-  .attr("style","text-align:center; font-size:200%;");
-yearSlider
-  .append("input")
+  .attr("style","font-size:200%;");
+yearSlider.append("input")
     .attr("name","time")
     .attr("type","range")
     .attr("min",1700)
     .attr("max",2008)
     .attr("value",currYear)
-    .attr("style","width:"+yearSliderWidth+"px")
-    .on("change",function(d) {return changeYear(this.value);})
+    .attr("style","width:"+yearSliderWidth+"px;")
+    .on("change",function(d) {return changeYear(this.value);});
 
 // calculates the radius of a datum
 function getr(d) {
