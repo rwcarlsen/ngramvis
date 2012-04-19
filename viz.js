@@ -197,6 +197,15 @@ doiSliders
     .attr("value",0)
     .on("change",function(d) {return reweight(this.value,4);})
 
+var timeSlider = d3.select("#timeSlider")
+  .append("input")
+    .attr("name","time")
+    .attr("type","range")
+    .attr("min",1700)
+    .attr("max",2008)
+    .attr("value",2000)
+    .attr("style","width:500px")
+    .on("change",function(d) {return changeYear(this.value);})
 
 // calculates the radius of a datum
 function getr(d) {
@@ -223,6 +232,11 @@ function reweight(v, changed) {
   var w = weights.split("/");
   w[changed] = String(v / 10.0);
   weights = w.join("/");
+  d3.json("/data/reweight/" + currYear + "/" + weights, function(json) {fetchData(num_datums);});
+}
+
+function changeYear(newYear) {
+  currYear = newYear;
   d3.json("/data/reweight/" + currYear + "/" + weights, function(json) {fetchData(num_datums);});
 }
 
