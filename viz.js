@@ -14,6 +14,11 @@ var currYear = 1980
 //   length / count / pages / books / pg-den
 var weights = "0/0/0/0/0"
 
+// used to prevent recomputation and facilitate access from mouseovers etc.
+var minscore
+var maxscore
+var gbscale
+
 /////// end adjustable params /////////
 
 function initTooltip() {
@@ -35,26 +40,37 @@ function initTooltip() {
 function initVizCanvas() {
   var viz = d3.select("#viz")
     .append("svg:svg")
-    .attr("width", w)
-    .attr("height", h)
+    .attr("width", vizw)
+    .attr("height", vizh)
 }
 
 function initAxes() {
   var axisColor = "black"
-  var tickColor = "blue"
 
-  var xTickLen = 10
-  var yTickLen = 10
+  var xTickLen = 15
+  var yTickLen = 15
 
   scales = makeScales();
 
+  var viz = d3.select("#viz").select("svg")
+
+  var xaxis = d3.svg.axis()
+    .scale(scales.x)
+    .orient("bottom")
+    .ticks(10)
+    .tickSize(xTickLen, 0, 0)
+
+  viz.append("svg:g")
+    .attr("stroke", axisColor)
+    .call(xaxis)
+
   // axis lines
-  viz.append("svg:line")
-    .attr("x1", scales.x.range()[0])
-    .attr("y1", scales.y.range()[1])
-    .attr("x2", scales.x.range()[1])
-    .attr("y2", scales.y.range()[1])
-    .attr("stroke", axisColor);
+  //viz.append("svg:line")
+  //  .attr("x1", scales.x.range()[0])
+  //  .attr("y1", scales.y.range()[0])
+  //  .attr("x2", scales.x.range()[1])
+  //  .attr("y2", scales.y.range()[0])
+  //  .attr("stroke", axisColor);
   viz.append("svg:line")
     .attr("x1", scales.x.range()[0])
     .attr("y1", scales.y.range()[0])
@@ -69,7 +85,7 @@ function initAxes() {
     .attr("class","xLabel")
     .text(scales.x.tickFormat())
     .attr("x", function(d) {return scales.x(d);})
-    .attr("y", scales.y.range()[1] + 40)
+    .attr("y", scales.y.range()[0] + 40)
     .attr("text-anchor", "middle");
 
   viz.selectAll(".yLabel")
@@ -85,17 +101,17 @@ function initAxes() {
   // tick marks
   viz.selectAll(".xTicks")
     .data(scales.x.ticks(5))
-    .enter().append("svg.line")
+    .enter().append("svg:line")
     .attr("class", "xTicks")
     .attr("x1", function(d) {return scales.x(d);})
-    .attr("y1", scales.y.range()[1] - xTickLen / 2.0)
+    .attr("y1", scales.y.range()[0] - xTickLen / 2.0)
     .attr("x2", function(d) {return scales.x(d);})
-    .attr("y2", scales.y.range()[1] + xTickLen / 2.0)
+    .attr("y2", scales.y.range()[0] + xTickLen / 2.0)
     .attr("stroke", tickColor);
     
   viz.selectAll(".yTicks")
     .data(scales.y.ticks(4))
-    .enter().append("svg.line")
+    .enter().append("svg:line")
     .attr("class", "yTicks")
     .attr("y1", function(d) {return scales.y(d);})
     .attr("x1", scales.x.range()[0] - yTickLen / 2.0)
@@ -147,13 +163,19 @@ var pdSlider = d3.select("#pdSlider")
 
 
 // calculates the radius of a datum
-function getr(d, minscore, maxscore) {
-  return rmin + (d.S - minscore) / (maxscore - minscore + 0.001) * (rmax - rmin);
+function getr(d) {
+  if (maxscore == minscore) {
+    return rmin;
+  }
+  r = d3.scale.linear()
+   .domain([minscore, maxscore])
+   .range([rmin, rmax])
+  return r(d.S);
 }
 
 // calculates the mouseover radius of a datum
-function getrbig(d, minscore, maxscore) {
-  return getr(d, minscore, maxscore) + 2;
+function getrbig(d) {
+  return getr(d) + 2;
 }
 
 // key function for d3 data binding
@@ -165,7 +187,7 @@ function reweight(v, changed) {
   var w = weights.split("/");
   w[changed] = String(v / 10.0);
   weights = w.join("/");
-  d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {fetchData(num_datums);});
+  d3.json("/data/reweight/" + currYear + "/" + weights, function(json) {fetchData(num_datums);});
 }
 
 function fetchData(ndatums) {
@@ -208,12 +230,17 @@ function updateViz(data) {
 
   scales = makeScales()
 
-  // create color scale based on something ????????????????????
-  var minscore = d3.min(data, function(d) {return d.S})
-  var maxscore = d3.max(data, function(d) {return d.S})
-  var gbscale = d3.scale.linear().domain([minscore, maxscore]).range([255, 0])
+  var viz = d3.select("#viz").select("svg")
+  var tooltip = d3.select("#tooltip")
+
+  // min and max scores used to make relative encodings
+  minscore = d3.min(data, function(d) {return d.S})
+  maxscore = d3.max(data, function(d) {return d.S})
 
   var circle = viz.selectAll("circle")
+
+  // create color scale based on something ????????????????????
+  gbscale = d3.scale.linear().domain([minscore, maxscore]).range([255, 0])
 
   // update existing circles to updated scales
   circle.data(data, wordtext)
@@ -249,7 +276,6 @@ function updateViz(data) {
       return tooltip;
     }) .on("mouseout", function(d){ d3.select(this)
           .attr("r", function() {return getr(d, minscore, maxscore);})
-          .style("fill", "black")
           .style("fill", function() {return d3.rgb(255, gbscale(d.S), gbscale(d.S)).toString();});
         return tooltip.style("visibility", "hidden");
       })
@@ -270,5 +296,5 @@ function updateViz(data) {
 initTooltip();
 initVizCanvas();
 initAxes();
-fetchData();
+reweight();
 
