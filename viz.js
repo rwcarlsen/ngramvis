@@ -1,57 +1,108 @@
-/*path {
-    stroke: steelblue;
-    stroke-width: 2;
-    fill: none;
-}
- 
-line {
-    stroke: black;
-}
- 
-text {
-    font-family: Arial;
-    font-size: 9pt;
-}*/
+/////// adjustable params /////////
 
+// plot canvas dimensions
+var vizh = 600;
+var vizw = 900;
 
-// global variables
-var h = 750; //height
-var w = 1200; //width
-var xOffset = 40
-var yOffset = 40
+// radii for datum circles
+var rmin = 3
+var rmax = 10
 
-var data = [];
+var num_datums = 500;
+var currYear = 1980
 
 //   length / count / pages / books / pg-den
 var weights = "0/0/0/0/0"
-var start_year = 1990;
-var num_datums = 500;
-var rmin = 3
-var rmax = 10
-var pad = rmax + 10 //padding around the graphing space
-var transdur = 1000;
 
-// tooltip stuff:
-var tooltip = d3.select("#tooltip")
-  .style("position", "absolute")
-  .style("color", "green")
-  .style("background-color", "lightgrey")
-  .style("font-size", "20")
-  .style("font-weight", "bold")
-  .style("visibility", "hidden")
+/////// end adjustable params /////////
 
-// create svg drawing board
-var viz = d3.select("#viz")
-  .append("svg:svg")
-  .attr("width", w)
-  .attr("height", h)
-  .on("click", function(){
-    prevframe();
-  })
-  .on("contextmenu", function(){
-    nextframe()
-    d3.event.preventDefault();
-  });
+function initTooltip() {
+  fontSize = "20"
+  fontColor = "green"
+  fontWeight = "bold"
+  bgColor = "lightgrey"
+
+  // tooltip stuff:
+  var tooltip = d3.select("#tooltip")
+    .style("position", "absolute")
+    .style("color", fontColor)
+    .style("background-color", bgColor)
+    .style("font-size", fontSize)
+    .style("font-weight", fontWeight)
+    .style("visibility", "hidden")
+}
+
+function initVizCanvas() {
+  var viz = d3.select("#viz")
+    .append("svg:svg")
+    .attr("width", w)
+    .attr("height", h)
+}
+
+function initAxes() {
+  var axisColor = "black"
+  var tickColor = "blue"
+
+  var xTickLen = 10
+  var yTickLen = 10
+
+  scales = makeScales();
+
+  // axis lines
+  viz.append("svg:line")
+    .attr("x1", scales.x.range()[0])
+    .attr("y1", scales.y.range()[1])
+    .attr("x2", scales.x.range()[1])
+    .attr("y2", scales.y.range()[1])
+    .attr("stroke", axisColor);
+  viz.append("svg:line")
+    .attr("x1", scales.x.range()[0])
+    .attr("y1", scales.y.range()[0])
+    .attr("x2", scales.x.range()[0])
+    .attr("y2", scales.y.range()[1])
+    .attr("stroke", axisColor);
+
+  // tick mark labels
+  viz.selectAll(".xLabel")
+    .data(scales.x.ticks())
+    .enter().append("svg:text")
+    .attr("class","xLabel")
+    .text(scales.x.tickFormat())
+    .attr("x", function(d) {return scales.x(d);})
+    .attr("y", scales.y.range()[1] + 40)
+    .attr("text-anchor", "middle");
+
+  viz.selectAll(".yLabel")
+    .data(scales.y.ticks())
+    .enter().append("svg:text")
+    .attr("class","yLabel")
+    .text(scales.y.tickFormat())
+    .attr("x", 0)
+    .attr("y", function(d) {return scales.y(d);})
+    .attr("text-anchor", "right")
+    .attr("dy", 4); //not sure what this line does...
+    
+  // tick marks
+  viz.selectAll(".xTicks")
+    .data(scales.x.ticks(5))
+    .enter().append("svg.line")
+    .attr("class", "xTicks")
+    .attr("x1", function(d) {return scales.x(d);})
+    .attr("y1", scales.y.range()[1] - xTickLen / 2.0)
+    .attr("x2", function(d) {return scales.x(d);})
+    .attr("y2", scales.y.range()[1] + xTickLen / 2.0)
+    .attr("stroke", tickColor);
+    
+  viz.selectAll(".yTicks")
+    .data(scales.y.ticks(4))
+    .enter().append("svg.line")
+    .attr("class", "yTicks")
+    .attr("y1", function(d) {return scales.y(d);})
+    .attr("x1", scales.x.range()[0] - yTickLen / 2.0)
+    .attr("y2", function(d) {return scales.y(d);})
+    .attr("x2", scales.x.range()[0] + yTickLen / 2.0)
+    .attr("stroke", tickColor);
+}
 
 var wordlengthSlider = d3.select("#wordlengthSlider")
   .append("input")
@@ -94,20 +145,6 @@ var pdSlider = d3.select("#pdSlider")
     .attr("value",0)
     .on("change",function(d) {return reweight(this.value,4);})
 
-  // Axes 
-  viz.append("svg:line")
-    .attr("x1",xOffset)
-    .attr("y1",0)
-    .attr("x2",xOffset)
-    .attr("y2",h-yOffset)
-    .attr("stroke","red");
-  viz.append("svg:line")
-    .attr("x1",xOffset)
-    .attr("y1",h-yOffset)
-    .attr("x2",w)
-    .attr("y2",h-yOffset)
-    .attr("stroke","red");
-    
 
 // calculates the radius of a datum
 function getr(d, minscore, maxscore) {
@@ -124,91 +161,57 @@ function wordtext(d) {
   return d.W;
 }
 
-// load external word data - note asynchrous behavior (parallel requests)
-var frame = -1;
-nextframe();
-function nextframe() {
-  frame += 1;
-  d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
-}
-function prevframe() {
-  frame -= 1;
-  d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
-}
-        
 function reweight(v, changed) {
   var w = weights.split("/");
   w[changed] = String(v / 10.0);
   weights = w.join("/");
-  d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {getData(num_datums);});
+  d3.json("/data/reweight/" + (start_year + frame) + "/" + weights, function(json) {fetchData(num_datums);});
 }
 
-function getData(ndatums) {
-  d3.json("/data/" + 0 + "/" + ndatums, function(json) {renderVis(json);});
+function fetchData(ndatums) {
+  d3.json("/data/" + 0 + "/" + ndatums, function(json) {updateViz(json);});
 }
 
-function renderVis(newdata) {
-  minscore = d3.min(newdata, function(d) {return d.S})
-  maxscore = d3.max(newdata, function(d) {return d.S})
-  gbscale = d3.scale.linear().domain([minscore, maxscore]).range([255, 0])
-  data = newdata;
+function makeScales() {
+  // additional offsets making space for axis text labels
+  var leftOffset = 40
+  var bottomOffset = 40
+
+  //padding around the graphing space
+  var pad = new Object()
+  pad.left = 15 + leftOffset
+  pad.right = 15
+  pad.top = 15
+  pad.bottom = 15 + bottomOffset
 
   // calc max/min and calibrate axis scales
-  bkmin = 40
-  bkmax = 150000
-  dmin = 1
-  dmax = 50
+  var bkmin = 40
+  var bkmax = 150000
+  var dmin = 1
+  var dmax = 30
 
-  var xscale = d3.scale.log()
+  // create 
+  s = new Object();
+  s.x = d3.scale.log()
    .domain([dmin, dmax])
-   .range([0+xOffset+pad, w-pad])
-  var yscale = d3.scale.log()
+   .range([pad.left, vizw-pad.right])
+  s.y = d3.scale.log()
    .domain([bkmin, bkmax])
-   .range([h-yOffset-pad, 0+pad])
-  
-  // Tick marks on axes
-  viz.selectAll(".xLabel")
-    .data(xscale.ticks(5))
-    .enter().append("svg:text")
-    .attr("class","xLabel")
-    .text(String)
-    .attr("x", function(d) {return xscale(d);})
-    .attr("y", h)
-    .attr("text-anchor", "middle");
-  viz.selectAll(".xTicks")
-    .data(xscale.ticks(5))
-    .enter().append("svg.line")
-    .attr("class", "xTicks")
-    .attr("x1", function(d) {return xscale(d);})
-    .attr("y1", h-yOffset) // probably changing this
-    .attr("x2", function(d) {return xscale(d);})
-    .attr("y2", h-yOffset-10) // probably changing this
-    .attr("stroke", "red");
-    
-  var yLabels = viz.selectAll(".yLabel")
-    .attr("y", function(d) {return yscale(d);})
-    
-  yLabels.data(yscale.ticks(4))
-    .enter().append("svg:text")
-    .attr("class","yLabel")
-    .text(String)
-    .attr("x", 0)
-    .attr("y", function(d) {return yscale(d);})
-    .attr("text-anchor", "right")
-    .attr("dy", 4); //not sure what this line does...
-    
-  var yTicks = viz.selectAll(".yTicks")
-    .attr("y1", function(d) {return yscale(d);})
-    .attr("y2", function(d) {return yscale(d);})
-    
-  yTicks.data(yscale.ticks(4))
-    .enter().append("svg.line")
-    .attr("class", "yTicks")
-    .attr("y1", function(d) {return yscale(d);})
-    .attr("x1", 0) // probably changing this
-    .attr("y2", function(d) {return yscale(d);})
-    .attr("x2", 10) // probably changing this
-    .attr("stroke", "red");
+   .range([vizh-pad.bottom, pad.top])
+
+  return s;
+}
+
+function updateViz(data) {
+  // time len (ms) of animated transitions
+  var transdur = 1000
+
+  scales = makeScales()
+
+  // create color scale based on something ????????????????????
+  var minscore = d3.min(data, function(d) {return d.S})
+  var maxscore = d3.max(data, function(d) {return d.S})
+  var gbscale = d3.scale.linear().domain([minscore, maxscore]).range([255, 0])
 
   var circle = viz.selectAll("circle")
 
@@ -217,8 +220,8 @@ function renderVis(newdata) {
     .transition()
     .duration(transdur)
     .delay(function(i, d) {return i * 10;})
-    .attr("cx", function(d, i) {return xscale(d.X);})
-    .attr("cy", function(d, i) {return yscale(d.Y);})
+    .attr("cx", function(d, i) {return scales.x(d.X);})
+    .attr("cy", function(d, i) {return scales.y(d.Y);})
     .style("fill", function(d) {return d3.rgb(255, gbscale(d.S), gbscale(d.S)).toString();})
     .attr("r", function(d) {return getr(d, minscore, maxscore);});
 
@@ -226,8 +229,8 @@ function renderVis(newdata) {
   circle.data(data, wordtext)
     .enter().append("svg:circle")
     .attr("r", 0)
-    .attr("cx", function(d, i) {return xscale(d.X);})
-    .attr("cy", function(d, i) {return yscale(d.Y);})
+    .attr("cx", function(d, i) {return scales.x(d.X);})
+    .attr("cy", function(d, i) {return scales.y(d.Y);})
     .style("stroke", "black")
     .style("fill", function(d) {return d3.rgb(255, gbscale(d.S), gbscale(d.S)).toString();})
     .on("mouseover", function(d) {
@@ -262,4 +265,10 @@ function renderVis(newdata) {
     .transition()
     .remove();
 }
+
+// main execution start point:
+initTooltip();
+initVizCanvas();
+initAxes();
+fetchData();
 
