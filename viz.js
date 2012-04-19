@@ -159,6 +159,7 @@ function initAxes() {
 
 }
 
+// Define Degree of Interest sliders
 var doiSliders = d3.select("#doiSliders");
 doiSliders
   .append("input")
@@ -167,8 +168,10 @@ doiSliders
     .attr("min",-10)
     .attr("max",10)
     .attr("value",0)
-    .attr("style","width:"+doiSliderWidth+"px")
+    .attr("style","width:"+doiSliderWidth+"px; vertical-align:middle")
     .on("change",function(d) {return reweight(this.value,0);})
+doiSliders.append("sliderLabel").text(" Word Length");
+doiSliders.append("br");
 doiSliders
   .append("input")
     .attr("name","count")
@@ -176,8 +179,10 @@ doiSliders
     .attr("min",-10)
     .attr("max",10)
     .attr("value",0)
-    .attr("style","width:"+doiSliderWidth+"px")
+    .attr("style","width:"+doiSliderWidth+"px; vertical-align:middle")
     .on("change",function(d) {return reweight(this.value,1);})
+doiSliders.append("sliderLabel").text(" Count");
+doiSliders.append("br");
 doiSliders
   .append("input")
     .attr("name","pages")
@@ -185,8 +190,10 @@ doiSliders
     .attr("min",-10)
     .attr("max",10)
     .attr("value",0)
-    .attr("style","width:"+doiSliderWidth+"px")
+    .attr("style","width:"+doiSliderWidth+"px; vertical-align:middle")
     .on("change",function(d) {return reweight(this.value,2);})
+doiSliders.append("sliderLabel").text(" # Pages");
+doiSliders.append("br");
 doiSliders
   .append("input")
     .attr("name","books")
@@ -194,8 +201,10 @@ doiSliders
     .attr("min",-10)
     .attr("max",10)
     .attr("value",0)
-    .attr("style","width:"+doiSliderWidth+"px")
+    .attr("style","width:"+doiSliderWidth+"px; vertical-align:middle")
     .on("change",function(d) {return reweight(this.value,3);})
+doiSliders.append("sliderLabel").text(" # Books");
+doiSliders.append("br");
 doiSliders
   .append("input")
     .attr("name","pd")
@@ -203,10 +212,18 @@ doiSliders
     .attr("min",-10)
     .attr("max",10)
     .attr("value",0)
-    .attr("style","width:"+doiSliderWidth+"px")
+    .attr("style","width:"+doiSliderWidth+"px; vertical-align:middle")
     .on("change",function(d) {return reweight(this.value,4);})
+doiSliders.append("sliderLabel").text(" Page Density");
 
+// Define year slider
 var yearSlider = d3.select("#yearSlider")
+  .attr("style","width:"+yearSliderWidth+"px");
+yearSlider.append("div")
+  .attr("id","yearLabel")
+  .text(currYear)
+  .attr("style","text-align:center; font-size:200%;");
+yearSlider
   .append("input")
     .attr("name","time")
     .attr("type","range")
@@ -237,6 +254,7 @@ function wordtext(d) {
   return d.W;
 }
 
+// Function used by weight sliders when changed
 function reweight(v, changed) {
   var w = weights.split("/");
   w[changed] = String(v / 10.0);
@@ -244,8 +262,10 @@ function reweight(v, changed) {
   d3.json("/data/reweight/" + currYear + "/" + weights, function(json) {fetchData(num_datums);});
 }
 
+// Function used by year slider when changed
 function changeYear(newYear) {
   currYear = newYear;
+  yearSlider.select("#yearLabel").text(currYear);
   d3.json("/data/reweight/" + currYear + "/" + weights, function(json) {fetchData(num_datums);});
 }
 
