@@ -53,7 +53,8 @@ var viz = d3.select("#viz")
     d3.event.preventDefault();
   });
 
-var wordlengthSlider = d3.select("#wordlengthSlider")
+var doiSliders = d3.select("#doiSliders");
+doiSliders
   .append("input")
     .attr("name","wordlength")
     .attr("type","range")
@@ -61,7 +62,7 @@ var wordlengthSlider = d3.select("#wordlengthSlider")
     .attr("max",10)
     .attr("value",0)
     .on("change",function(d) {return reweight(this.value,0);})
-var countSlider = d3.select("#countSlider")
+doiSliders
   .append("input")
     .attr("name","count")
     .attr("type","range")
@@ -69,7 +70,7 @@ var countSlider = d3.select("#countSlider")
     .attr("max",10)
     .attr("value",0)
     .on("change",function(d) {return reweight(this.value,1);})
-var pagesSlider = d3.select("#pagesSlider")
+doiSliders
   .append("input")
     .attr("name","pages")
     .attr("type","range")
@@ -77,7 +78,7 @@ var pagesSlider = d3.select("#pagesSlider")
     .attr("max",10)
     .attr("value",0)
     .on("change",function(d) {return reweight(this.value,2);})
-var booksSlider = d3.select("#booksSlider")
+doiSliders
   .append("input")
     .attr("name","books")
     .attr("type","range")
@@ -85,7 +86,7 @@ var booksSlider = d3.select("#booksSlider")
     .attr("max",10)
     .attr("value",0)
     .on("change",function(d) {return reweight(this.value,3);})
-var pdSlider = d3.select("#pdSlider")
+doiSliders
   .append("input")
     .attr("name","pd")
     .attr("type","range")
