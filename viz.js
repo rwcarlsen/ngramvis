@@ -46,37 +46,61 @@ function initVizCanvas() {
 
 function initAxes() {
   var axisColor = "black"
+  var tickColor = "black"
 
-  var xTickLen = 15
-  var yTickLen = 15
+  var majorTick = 20
+  var minorTick = 10
+  var width = 3
 
+  // tickwidth func for y axis
+  tickW = function(d) {
+    if (String(d)[0] == "1") {
+      return 5
+    }
+    return 1;
+  }
+
+  // generates tick end point generating functions
+  var yTickEndsFunc = function(sign) {
+    var mult = -1
+    if (sign > 0) {mult = 1;}
+    return function(d) {
+      if (String(d)[0] == "1") {
+        return scales.x.range()[0] + mult * majorTick / 2.0;
+      }
+      return scales.x.range()[0] + mult * minorTick / 2.0;
+    };
+  }
+  var xTickEndsFunc = function(sign) {
+    var mult = -1
+    if (sign > 0) {mult = 1;}
+    return function(d) {
+      if (String(d)[0] == "1") {
+        return scales.y.range()[0] + mult * majorTick / 2.0;
+      }
+      return scales.y.range()[0] + mult * minorTick / 2.0;
+    };
+  }
+    
   scales = makeScales();
 
   var viz = d3.select("#viz").select("svg")
 
-  var xaxis = d3.svg.axis()
-    .scale(scales.x)
-    .orient("bottom")
-    .ticks(10)
-    .tickSize(xTickLen, 0, 0)
-
-  viz.append("svg:g")
-    .attr("stroke", axisColor)
-    .call(xaxis)
-
   // axis lines
-  //viz.append("svg:line")
-  //  .attr("x1", scales.x.range()[0])
-  //  .attr("y1", scales.y.range()[0])
-  //  .attr("x2", scales.x.range()[1])
-  //  .attr("y2", scales.y.range()[0])
-  //  .attr("stroke", axisColor);
+  viz.append("svg:line")
+    .attr("x1", scales.x.range()[0])
+    .attr("y1", scales.y.range()[0])
+    .attr("x2", scales.x.range()[1])
+    .attr("y2", scales.y.range()[0])
+    .attr("stroke", axisColor)
+    .attr("stroke-width", width)
   viz.append("svg:line")
     .attr("x1", scales.x.range()[0])
     .attr("y1", scales.y.range()[0])
     .attr("x2", scales.x.range()[0])
     .attr("y2", scales.y.range()[1])
-    .attr("stroke", axisColor);
+    .attr("stroke", axisColor)
+    .attr("stroke-width", width)
 
   // tick mark labels
   viz.selectAll(".xLabel")
@@ -86,38 +110,49 @@ function initAxes() {
     .text(scales.x.tickFormat())
     .attr("x", function(d) {return scales.x(d);})
     .attr("y", scales.y.range()[0] + 40)
-    .attr("text-anchor", "middle");
+    .attr("text-anchor", "middle")
+    .attr("transform", function(d) {
+        return "rotate(-70 " + scales.x(d) + " " + (scales.y.range()[0] + 40) + ")";
+      })
 
   viz.selectAll(".yLabel")
     .data(scales.y.ticks())
     .enter().append("svg:text")
     .attr("class","yLabel")
-    .text(scales.y.tickFormat())
-    .attr("x", 0)
+    .text( function(d) {
+        if (String(d)[0] == "1") {
+          return scales.y.tickFormat()(d);
+        }
+        return "";
+      })
+    .attr("x", scales.x.range()[0])
     .attr("y", function(d) {return scales.y(d);})
-    .attr("text-anchor", "right")
-    .attr("dy", 4); //not sure what this line does...
-    
+    .attr("text-anchor", "end")
+    .attr("transform", "translate(-15 4)")
+
   // tick marks
   viz.selectAll(".xTicks")
-    .data(scales.x.ticks(5))
+    .data(scales.x.ticks())
     .enter().append("svg:line")
     .attr("class", "xTicks")
     .attr("x1", function(d) {return scales.x(d);})
-    .attr("y1", scales.y.range()[0] - xTickLen / 2.0)
+    .attr("y1", xTickEndsFunc(-1))
     .attr("x2", function(d) {return scales.x(d);})
-    .attr("y2", scales.y.range()[0] + xTickLen / 2.0)
-    .attr("stroke", tickColor);
+    .attr("y2", xTickEndsFunc(1))
+    .attr("stroke", tickColor)
+    .attr("stroke-width", tickW)
     
   viz.selectAll(".yTicks")
-    .data(scales.y.ticks(4))
+    .data(scales.y.ticks())
     .enter().append("svg:line")
     .attr("class", "yTicks")
     .attr("y1", function(d) {return scales.y(d);})
-    .attr("x1", scales.x.range()[0] - yTickLen / 2.0)
+    .attr("x1", yTickEndsFunc(-1))
     .attr("y2", function(d) {return scales.y(d);})
-    .attr("x2", scales.x.range()[0] + yTickLen / 2.0)
-    .attr("stroke", tickColor);
+    .attr("x2", yTickEndsFunc(1))
+    .attr("stroke", tickColor)
+    .attr("stroke-width", tickW)
+
 }
 
 var wordlengthSlider = d3.select("#wordlengthSlider")
