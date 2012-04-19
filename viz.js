@@ -4,6 +4,10 @@
 var vizh = 600;
 var vizw = 900;
 
+// slider dimensions
+var doiSliderWidth = 100;
+var yearSliderWidth = 500;
+
 // radii for datum circles
 var rmin = 3
 var rmax = 10
@@ -163,6 +167,7 @@ doiSliders
     .attr("min",-10)
     .attr("max",10)
     .attr("value",0)
+    .attr("style","width:"+doiSliderWidth+"px")
     .on("change",function(d) {return reweight(this.value,0);})
 doiSliders
   .append("input")
@@ -171,6 +176,7 @@ doiSliders
     .attr("min",-10)
     .attr("max",10)
     .attr("value",0)
+    .attr("style","width:"+doiSliderWidth+"px")
     .on("change",function(d) {return reweight(this.value,1);})
 doiSliders
   .append("input")
@@ -179,6 +185,7 @@ doiSliders
     .attr("min",-10)
     .attr("max",10)
     .attr("value",0)
+    .attr("style","width:"+doiSliderWidth+"px")
     .on("change",function(d) {return reweight(this.value,2);})
 doiSliders
   .append("input")
@@ -187,6 +194,7 @@ doiSliders
     .attr("min",-10)
     .attr("max",10)
     .attr("value",0)
+    .attr("style","width:"+doiSliderWidth+"px")
     .on("change",function(d) {return reweight(this.value,3);})
 doiSliders
   .append("input")
@@ -195,16 +203,17 @@ doiSliders
     .attr("min",-10)
     .attr("max",10)
     .attr("value",0)
+    .attr("style","width:"+doiSliderWidth+"px")
     .on("change",function(d) {return reweight(this.value,4);})
 
-var timeSlider = d3.select("#timeSlider")
+var yearSlider = d3.select("#yearSlider")
   .append("input")
     .attr("name","time")
     .attr("type","range")
     .attr("min",1700)
     .attr("max",2008)
-    .attr("value",2000)
-    .attr("style","width:500px")
+    .attr("value",currYear)
+    .attr("style","width:"+yearSliderWidth+"px")
     .on("change",function(d) {return changeYear(this.value);})
 
 // calculates the radius of a datum
