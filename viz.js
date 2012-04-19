@@ -159,9 +159,11 @@ function initAxes() {
 
 }
 
+// Title div
+
 var vizTitle = d3.select("#vizTitle")
   .attr("style","width:"+vizw+"px; text-align:center; font-size:300%;")
-  .text("Books vs. Page Density")
+  .text("Books vs. Page Density");
 
 // Define Degree of Interest sliders
 var doiSliders = d3.select("#doiSliders");
