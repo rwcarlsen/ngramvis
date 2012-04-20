@@ -4,10 +4,6 @@
 var vizh = 600;
 var vizw = 900;
 
-// slider dimensions
-var doiSliderWidth = 100;
-var yearSliderWidth = 500;
-
 // radii for datum circles
 var rmin = 3
 var rmax = 10
@@ -17,13 +13,12 @@ var currYear = 1980
 
 //   length / count / pages / books / pg-den
 var weights = "0/0/0/0/0"
+/////// end adjustable params /////////
 
 // used to prevent recomputation and facilitate access from mouseovers etc.
 var minscore
 var maxscore
 var gbscale
-
-/////// end adjustable params /////////
 
 function initTooltip() {
   fontSize = "20"
@@ -159,42 +154,47 @@ function initAxes() {
 
 }
 
-// Title div
-
-var vizTitle = d3.select("#vizTitle")
-  .attr("style","width:"+vizw+"px; text-align:center; font-size:300%;")
-  .text("Books vs. Page Density");
-
-// Define Degree of Interest sliders
-var doiSliders = d3.select("#doiSliders");
-
-function addDOIslider(idName, displayName, i) {
-  doiSliders.append("input")
-      .attr("name",idName)
-      .attr("type","range")
-      .attr("min",-10)
-      .attr("max",10)
-      .attr("value",0)
-      .attr("style","width:"+doiSliderWidth+"px; vertical-align:middle")
-      .on("change",function(d) {return reweight(this.value,i);});
-  doiSliders.append("sliderLabel").text(" "+displayName);
-  doiSliders.append("br");
+function initTitle() {
+  var vizTitle = d3.select("#vizTitle")
+    .attr("style", "width:" + vizw + "px; text-align:center; font-size:300%;")
+    .text("Books vs. Page Density");
 }
 
-addDOIslider("wordlength","Word Length",0);
-addDOIslider("count","Count",1);
-addDOIslider("pages","# Pages",2);
-addDOIslider("books","# Books",3);
-addDOIslider("pd","Page Density",4);
+function initDOIsliders() {
+  var doiSliders = d3.select("#doiSliders");
 
-// Define year slider
-var yearSlider = d3.select("#yearSlider")
-  .attr("style","width:"+vizw+"px; text-align:center");
-yearSlider.append("div")
-  .attr("id","yearLabel")
-  .text(currYear)
-  .attr("style","font-size:200%;");
-yearSlider.append("input")
+  var addDOIslider = function(idName, displayName, i) {
+    doiSliders.append("input")
+        .attr("name", idName)
+        .attr("type", "range")
+        .attr("min", -10)
+        .attr("max", 10)
+        .attr("value", 0)
+        .attr("style", "width:" + doiSliderWidth + "px; vertical-align:middle")
+        .on("change", function(d) {return reweight(this.value,i);});
+    doiSliders.append("sliderLabel").text(" " + displayName);
+    doiSliders.append("br");
+  }
+
+  addDOIslider("wordlength", "Word Length", 0);
+  addDOIslider("count", "Count", 1);
+  addDOIslider("pages", "# Pages", 2);
+  addDOIslider("books", "# Books", 3);
+  addDOIslider("pd", "Page Density", 4);
+}
+
+function initYearSlider() {
+  // slider dimensions
+  var doiSliderWidth = 100;
+  var yearSliderWidth = 500;
+
+  var yearSlider = d3.select("#yearSlider")
+    .attr("style","width:"+vizw+"px; text-align:center");
+  yearSlider.append("div")
+    .attr("id","yearLabel")
+    .text(currYear)
+    .attr("style","font-size:200%;");
+  yearSlider.append("input")
     .attr("name","time")
     .attr("type","range")
     .attr("min",1700)
@@ -202,6 +202,7 @@ yearSlider.append("input")
     .attr("value",currYear)
     .attr("style","width:"+yearSliderWidth+"px;")
     .on("change",function(d) {return changeYear(this.value);});
+}
 
 // calculates the radius of a datum
 function getr(d) {
@@ -235,6 +236,7 @@ function reweight(v, changed) {
 // Function used by year slider when changed
 function changeYear(newYear) {
   currYear = newYear;
+  var yearSlider = d3.select("#yearSlider")
   yearSlider.select("#yearLabel").text(currYear);
   d3.json("/data/reweight/" + currYear + "/" + weights, function(json) {fetchData(num_datums);});
 }
@@ -342,8 +344,11 @@ function updateViz(data) {
 }
 
 // main execution start point:
+initTitle();
 initTooltip();
 initVizCanvas();
 initAxes();
+initYearSlider();
+initDOIsliders();
 reweight();
 
