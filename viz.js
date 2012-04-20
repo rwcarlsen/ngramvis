@@ -15,6 +15,8 @@ var currYear = 1980
 var weights = "0/0/0/0/0"
 /////// end adjustable params /////////
 
+var doUpdate = true;
+
 // used to prevent recomputation and facilitate access from mouseovers etc.
 var minscore
 var maxscore
@@ -232,7 +234,7 @@ function reweight(v, changed) {
   var w = weights.split("/");
   w[changed] = String(v / 10.0);
   weights = w.join("/");
-  d3.json("/data/reweight/" + currYear + "/" + weights, function(json) {fetchData(num_datums);});
+  doUpdate = true;
 }
 
 // Function used by year slider when changed
@@ -240,9 +242,15 @@ function changeYear(newYear) {
   currYear = newYear;
   var yearSlider = d3.select("#yearSlider")
   yearSlider.select("#yearLabel").text(currYear);
+  doUpdate = true;
+}
+
+// recalcs scores based on weights and initiates data retrieval
+function update() {
   d3.json("/data/reweight/" + currYear + "/" + weights, function(json) {fetchData(num_datums);});
 }
 
+// retrieves data and initiates rendering.
 function fetchData(ndatums) {
   d3.json("/data/" + 0 + "/" + ndatums, function(json) {updateViz(json);});
 }
@@ -352,5 +360,12 @@ initVizCanvas();
 initAxes();
 initYearSlider();
 initDOIsliders();
-reweight();
+
+// update/rerender the vis once per second at the most
+setInterval(function() {
+  if (doUpdate) {
+    doUpdate = false;
+    update();
+  }
+}, 1000);
 
