@@ -161,6 +161,9 @@ function initTitle() {
 }
 
 function initDOIsliders() {
+  // slider dimensions
+  var doiSliderWidth = 100;
+
   var doiSliders = d3.select("#doiSliders");
 
   var addDOIslider = function(idName, displayName, i) {
@@ -185,7 +188,6 @@ function initDOIsliders() {
 
 function initYearSlider() {
   // slider dimensions
-  var doiSliderWidth = 100;
   var yearSliderWidth = 500;
 
   var yearSlider = d3.select("#yearSlider")
@@ -258,7 +260,7 @@ function makeScales() {
   pad.bottom = 15 + bottomOffset
 
   // calc max/min and calibrate axis scales
-  var bkmin = 40
+  var bkmin = 1
   var bkmax = 150000
   var dmin = 1
   var dmax = 30
