@@ -288,6 +288,9 @@ function makeScales() {
 function updateViz(data) {
   // time len (ms) of animated transitions
   var transdur = 1000
+  
+  // stagger delay between cirlces' animation
+  var stagger = 1. / data.length * 2 * transdur
 
   scales = makeScales()
 
@@ -307,7 +310,7 @@ function updateViz(data) {
   circle.data(data, wordtext)
     .transition()
     .duration(transdur)
-    .delay(function(i, d) {return i * 10;})
+    .delay(function(d, i) {return i * stagger;})
     .attr("cx", function(d, i) {return scales.x(d.X);})
     .attr("cy", function(d, i) {return scales.y(d.Y);})
     .style("fill", function(d) {return d3.rgb(255, gbscale(d.S), gbscale(d.S)).toString();})
