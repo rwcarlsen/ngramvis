@@ -17,6 +17,7 @@ var transdur = 1000
 /////// end adjustable params /////////
 
 var doUpdate = true;
+var mouseIsDown = false;
 
 var state = new Object()
 
@@ -30,7 +31,7 @@ function initState() {
   state.data = null // holds the retrieved data
   state.x = null // holds the x axis scale func
   state.y = null // holds the y axis scale func
-  state.zoomPts = null
+  state.zoom = []
   state.weights = "0/0/0/0/0"
 }
 
@@ -56,19 +57,68 @@ function initVizCanvas() {
     .attr("width", vizw)
     .attr("height", vizh)
     .on("mousedown", function(d) {
-        state.zoomPts = new Object()
-        state.zoomPts.x = []
-        state.zoomPts.y = []
+        mouseIsDown = true
+        pos = d3.mouse(this)
+        var lev = new Object()
+        lev.x1 = state.x.invert(pos[0])
+        lev.y1 = state.y.invert(pos[1])
+        state.zoom.append(lev)
+
+        // start the zoom rect
+        var viz = d3.select("#viz").select("svg")
+        viz.append("svg:rect")
+          .attr("id", "zoomrect")
+          .attr("x", pos[0])
+          .attr("y", pos[1])
+          .attr("width", 0)
+          .attr("height", 0)
+          .style("fill", lightgrey)
+          .style("stroke-opacity", 0.3)
       })
     .on("mouseup", function(d) {
+        if (!mouseIsDown) {
+          return;
+        }
+
         // get min/max of x and y and rescale/replot
-        state.zoomPoints = null
+        mouseIsDown = false
+        pos = d3.mouse(this)
+        var lev = state.zoom.slize(-1, 0)
+        lev.x2 = state.x.invert(pos[0])
+        lev.y2 = state.y.invert(pos[1])
+
+        updateScales(lev.x1, lev.x2, lev.y1, lev.y2)
+
+        x1 = min([lev.x1, lev.x2])
+        y1 = min([lev.y1, lev.y2])
+
+        dist = function(x, y) {
+          return Math.pow(Math.pow(x[0] - y[0], 2) + Math.pow(x[1], y[1], 2), 0.5)
+        }
+        var dists = []
+        dists.append(dist(pos, [state.x.range()[0], state.y.range()[0]])
+        dists.append(dist(pos, [state.x.range()[0], state.y.range()[1]])
+        dists.append(dist(pos, [state.x.range()[1], state.y.range()[0]])
+        dists.append(dist(pos, [state.x.range()[1], state.y.range()[1]])
+
+        var viz = d3.select("#viz").select("svg")
+        viz.select("#zoomrect")
+          .transition()
+          .duration(2 * transdur)
+          .attr("x", x)
+          .attr("y", pos[1])
+          .attr("width", )
+          .attr("height", 0)
+          .remove()
       })
     .on("mousemove", function(d) {
-        if (state.zoomPts == null) {return;}
+        if (!mouseIsDown) {
+          return;
+        }
         pos = d3.mouse(this)
-        state.zoomPoints.x.append(pos[0])
-        state.zoomPoints.y.append(pos[1])
+        var lev = state.zoom.slize(-1, 0)
+        lev.x2 = state.x.invert(pos[0])
+        lev.y2 = state.y.invert(pos[1])
       })
 }
 
