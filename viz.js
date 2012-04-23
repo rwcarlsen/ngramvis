@@ -116,15 +116,15 @@ function initVizCanvas() {
           return;
         }
 
-        updateScales(state.x.invert(xmin), state.x.invert(xmax),
-        state.y.invert(ymax), state.y.invert(ymin));
-
         // update plot with no stagger and longer dur than normal
         var tmpStagger = stagger;
         var tmpDur = transdur;
         stagger = 0;
         transdur = 2 * transdur
         updatePlot();
+
+        updateScales(state.x.invert(xmin), state.x.invert(xmax),
+          state.y.invert(ymax), state.y.invert(ymin));
 
         var width = state.x.range()[1] - state.x.range()[0]
         var height = state.y.range()[0] - state.y.range()[1]
@@ -307,7 +307,7 @@ function updateAxes() {
   var yTicksInRange = 0
   var yticks = state.y.ticks()
   for (i in yticks) {
-    if (yticks[i] > state.y.domain()[1] && yticks[i] < state.y.domain()[0]) {
+    if (yticks[i] < state.y.domain()[1] && yticks[i] > state.y.domain()[0]) {
       yTicksInRange += 1
     }
   }
