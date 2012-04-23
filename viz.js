@@ -53,10 +53,17 @@ function initTooltip() {
 }
 
 function initVizCanvas() {
-  var drawZoomRect = function() {
-    lev = state.zoom[state.zoom.length - 1]
+  function drawZoomRect(lev) {
     var cornerLeft = d3.min([lev.x1, lev.x2])
     var cornerTop = d3.min([lev.y1, lev.y2])
+
+    d3.select("#viz").select("svg").selectAll("#zoomrect")
+      .data([0])
+        .attr("x", cornerLeft)
+        .attr("y", cornerTop)
+        .attr("width", Math.abs(lev.x1 - lev.x2))
+        .attr("height", Math.abs(lev.y1 - lev.y2))
+        
 
     d3.select("#viz").select("svg").selectAll("#zoomrect")
       .data([0]).enter().append("svg:rect")
@@ -66,13 +73,10 @@ function initVizCanvas() {
         .attr("width", Math.abs(lev.x1 - lev.x2))
         .attr("height", Math.abs(lev.y1 - lev.y2))
         .style("fill", "black")
-        .style("stroke-opacity", 0.3)
+        .style("fill-opacity", 0.4)
   }
 
-  var svgelem = d3.select("#viz")
-    .append("svg:svg")
-
-  svgelem
+  d3.select("#viz").append("svg:svg")
     .attr("width", vizw)
     .attr("height", vizh)
     .on("mousedown", function(d) {
@@ -86,7 +90,8 @@ function initVizCanvas() {
         lev.y2 = pos[1]
         state.zoom.push(lev)
 
-        drawZoomRect()
+        // allow browser to rerender
+        drawZoomRect(lev)
       })
     .on("mouseup", function(d) {
         if (!mouseIsDown) {
@@ -114,14 +119,12 @@ function initVizCanvas() {
         updateScales(state.x.invert(xmin), state.x.invert(xmax),
         state.y.invert(ymax), state.y.invert(ymin));
 
-        // update plot with no stagger
+        // update plot with no stagger and longer dur than normal
         var tmpStagger = stagger;
         var tmpDur = transdur;
         stagger = 0;
         transdur = 2 * transdur
         updatePlot();
-        stagger = tmpStagger; // restore stagger
-        transdur = tmpDur; // restore transition duration
 
         var width = state.x.range()[1] - state.x.range()[0]
         var height = state.y.range()[0] - state.y.range()[1]
@@ -132,14 +135,16 @@ function initVizCanvas() {
             .transition()
             .duration(transdur)
             .attr("x", state.x.range()[0])
-            .attr("y", state.y.range()[0])
+            .attr("y", state.y.range()[1])
             .attr("width", width)
             .attr("height", height)
-            .transition()
-            .duration(transdur)
-            .style("stroke-opacity", 0.0)
+            .style("fill-opacity", 0.0)
             .transition()
             .remove()
+
+        // restore original timing
+        stagger = tmpStagger;
+        transdur = tmpDur;
       })
     .on("mousemove", function(d) {
         if (!mouseIsDown) {
@@ -147,9 +152,12 @@ function initVizCanvas() {
         }
         pos = d3.mouse(this)
         var lev = state.zoom[state.zoom.length - 1]
+        state.zoom.pop()
         lev.x2 = pos[0]
         lev.y2 = pos[1]
-        drawZoomRect()
+        state.zoom.push(lev)
+
+        drawZoomRect(lev)
       })
 
 }
@@ -267,11 +275,14 @@ function updateAxes() {
     .attr("stroke", axisColor)
     .attr("stroke-width", width)
 
+  // used to maintain continuity between different scale transitions
+  function tickKey(d) {return d;}
+
   ///// tick mark labels ///////
 
   // x labels
   viz.selectAll(".xLabel")
-    .data(state.x.ticks())
+    .data(state.x.ticks(), tickKey)
     .transition()
     .duration(dur)
     .attr("x", function(d) {return state.x(d);})
@@ -279,7 +290,7 @@ function updateAxes() {
         return "rotate(-70 " + state.x(d) + " " + (state.y.range()[0] + 40) + ")";
       })
   viz.selectAll(".xLabel")
-    .data(state.x.ticks())
+    .data(state.x.ticks(), tickKey)
     .enter().append("svg:text")
     .attr("class","xLabel")
     .text(state.x.tickFormat())
@@ -290,24 +301,24 @@ function updateAxes() {
         return "rotate(-70 " + state.x(d) + " " + (state.y.range()[0] + 40) + ")";
       })
   viz.selectAll(".xLabel")
-    .data(state.x.ticks())
+    .data(state.x.ticks(), tickKey)
     .exit()
     .remove()
 
   // y labels
   viz.selectAll(".yLabel")
-    .data(state.y.ticks())
+    .data(state.y.ticks(), tickKey)
     .transition()
     .duration(dur)
     .attr("y", function(d) {return state.y(d);})
   viz.selectAll(".yLabel")
-    .data(state.y.ticks())
+    .data(state.y.ticks(), tickKey)
     .enter().append("svg:text")
     .attr("class","yLabel")
     .text( function(d) {
-        if (String(d)[0] == "1") {
+        //if (String(d)[0] == "1") {
           return state.y.tickFormat()(d);
-        }
+        //}
         return "";
       })
     .attr("x", state.x.range()[0])
@@ -315,12 +326,12 @@ function updateAxes() {
     .attr("text-anchor", "end")
     .attr("transform", "translate(-15 4)")
   viz.selectAll(".yLabel")
-    .data(state.y.ticks())
+    .data(state.y.ticks(), tickKey)
     .exit().remove()
 
   // x tick marks
   viz.selectAll(".xTicks")
-    .data(state.x.ticks())
+    .data(state.x.ticks(), tickKey)
     .transition()
     .duration(dur)
     .attr("x1", function(d) {return state.x(d);})
@@ -329,7 +340,7 @@ function updateAxes() {
     .attr("y2", xTickEndsFunc(1))
     .attr("stroke-width", tickW)
   viz.selectAll(".xTicks")
-    .data(state.x.ticks())
+    .data(state.x.ticks(), tickKey)
     .enter().append("svg:line")
     .attr("class", "xTicks")
     .attr("x1", function(d) {return state.x(d);})
@@ -339,12 +350,12 @@ function updateAxes() {
     .attr("stroke", tickColor)
     .attr("stroke-width", tickW)
   viz.selectAll(".xTicks")
-    .data(state.x.ticks())
+    .data(state.x.ticks(), tickKey)
     .exit().remove()
     
   // y tick marks
   viz.selectAll(".yTicks")
-    .data(state.y.ticks())
+    .data(state.y.ticks(), tickKey)
     .transition()
     .duration(dur)
     .attr("y1", function(d) {return state.y(d);})
@@ -353,7 +364,7 @@ function updateAxes() {
     .attr("x2", yTickEndsFunc(1))
     .attr("stroke-width", tickW)
   viz.selectAll(".yTicks")
-    .data(state.y.ticks())
+    .data(state.y.ticks(), tickKey)
     .enter().append("svg:line")
     .attr("class", "yTicks")
     .attr("y1", function(d) {return state.y(d);})
@@ -363,7 +374,7 @@ function updateAxes() {
     .attr("stroke", tickColor)
     .attr("stroke-width", tickW)
   viz.selectAll(".yTicks")
-    .data(state.y.ticks())
+    .data(state.y.ticks(), tickKey)
     .exit().remove()
 }
 
