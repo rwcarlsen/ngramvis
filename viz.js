@@ -23,13 +23,14 @@ var state = new Object()
 // used to prevent recomputation and facilitate access from mouseovers etc.
 function initState() {
   state.currYear = 1980
-  state.numDatums = 500
+  state.numDatums = 500 // num words to retrieve from server
   state.minscore = 0
   state.maxscore = 0
   state.gbscale = null
-  state.data = null
-  state.x = null
-  state.y = null
+  state.data = null // holds the retrieved data
+  state.x = null // holds the x axis scale func
+  state.y = null // holds the y axis scale func
+  state.zoomPts = null
   state.weights = "0/0/0/0/0"
 }
 
@@ -54,9 +55,20 @@ function initVizCanvas() {
     .append("svg:svg")
     .attr("width", vizw)
     .attr("height", vizh)
-    .on("click", function(d) {
-        updateScales(1, 10, 10, 150000)
-        updatePlot();
+    .on("mousedown", function(d) {
+        state.zoomPts = new Object()
+        state.zoomPts.x = []
+        state.zoomPts.y = []
+      })
+    .on("mouseup", function(d) {
+        // get min/max of x and y and rescale/replot
+        state.zoomPoints = null
+      })
+    .on("mousemove", function(d) {
+        if (state.zoomPts == null) {return;}
+        pos = d3.mouse(this)
+        state.zoomPoints.x.append(pos[0])
+        state.zoomPoints.y.append(pos[1])
       })
 }
 
