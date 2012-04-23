@@ -9,10 +9,11 @@ var rmin = 3
 var rmax = 10
 
 // freq of auto rerendering
-var renderFreq = 1200
+var renderFreq = 800
 
 // time len (ms) of animated transitions
 var transdur = 1000
+var stagger  = 2 * transdur
 
 /////// end adjustable params /////////
 
@@ -52,28 +53,40 @@ function initTooltip() {
 }
 
 function initVizCanvas() {
-  var viz = d3.select("#viz")
+  var drawZoomRect = function() {
+    lev = state.zoom[state.zoom.length - 1]
+    var cornerLeft = d3.min([lev.x1, lev.x2])
+    var cornerTop = d3.min([lev.y1, lev.y2])
+
+    d3.select("#viz").select("svg").selectAll("#zoomrect")
+      .data([0]).enter().append("svg:rect")
+        .attr("id", "zoomrect")
+        .attr("x", cornerLeft)
+        .attr("y", cornerTop)
+        .attr("width", Math.abs(lev.x1 - lev.x2))
+        .attr("height", Math.abs(lev.y1 - lev.y2))
+        .style("fill", "black")
+        .style("stroke-opacity", 0.3)
+  }
+
+  var svgelem = d3.select("#viz")
     .append("svg:svg")
+
+  svgelem
     .attr("width", vizw)
     .attr("height", vizh)
     .on("mousedown", function(d) {
+        event.preventDefault()
         mouseIsDown = true
         pos = d3.mouse(this)
         var lev = new Object()
-        lev.x1 = state.x.invert(pos[0])
-        lev.y1 = state.y.invert(pos[1])
-        state.zoom.append(lev)
+        lev.x1 = pos[0]
+        lev.y1 = pos[1]
+        lev.x2 = pos[0]
+        lev.y2 = pos[1]
+        state.zoom.push(lev)
 
-        // start the zoom rect
-        var viz = d3.select("#viz").select("svg")
-        viz.append("svg:rect")
-          .attr("id", "zoomrect")
-          .attr("x", pos[0])
-          .attr("y", pos[1])
-          .attr("width", 0)
-          .attr("height", 0)
-          .style("fill", lightgrey)
-          .style("stroke-opacity", 0.3)
+        drawZoomRect()
       })
     .on("mouseup", function(d) {
         if (!mouseIsDown) {
@@ -83,43 +96,62 @@ function initVizCanvas() {
         // get min/max of x and y and rescale/replot
         mouseIsDown = false
         pos = d3.mouse(this)
-        var lev = state.zoom.slize(-1, 0)
-        lev.x2 = state.x.invert(pos[0])
-        lev.y2 = state.y.invert(pos[1])
+        var lev = state.zoom[state.zoom.length - 1]
+        lev.x2 = pos[0]
+        lev.y2 = pos[1]
 
-        updateScales(lev.x1, lev.x2, lev.y1, lev.y2)
-
-        x1 = min([lev.x1, lev.x2])
-        y1 = min([lev.y1, lev.y2])
-
-        dist = function(x, y) {
-          return Math.pow(Math.pow(x[0] - y[0], 2) + Math.pow(x[1], y[1], 2), 0.5)
+        // check for/ignore too small zoom box
+        var thresh = 10
+        var xmin = d3.min([lev.x1, lev.x2])
+        var ymin = d3.min([lev.y1, lev.y2])
+        var xmax = d3.max([lev.x1, lev.x2])
+        var ymax = d3.max([lev.y1, lev.y2])
+        if (xmax - xmin < thresh || ymax - ymin < thresh) {
+          state.zoom.pop();
+          return;
         }
-        var dists = []
-        dists.append(dist(pos, [state.x.range()[0], state.y.range()[0]])
-        dists.append(dist(pos, [state.x.range()[0], state.y.range()[1]])
-        dists.append(dist(pos, [state.x.range()[1], state.y.range()[0]])
-        dists.append(dist(pos, [state.x.range()[1], state.y.range()[1]])
 
-        var viz = d3.select("#viz").select("svg")
-        viz.select("#zoomrect")
-          .transition()
-          .duration(2 * transdur)
-          .attr("x", x)
-          .attr("y", pos[1])
-          .attr("width", )
-          .attr("height", 0)
-          .remove()
+        updateScales(state.x.invert(xmin), state.x.invert(xmax),
+        state.y.invert(ymax), state.y.invert(ymin));
+
+        // update plot with no stagger
+        var tmpStagger = stagger;
+        var tmpDur = transdur;
+        stagger = 0;
+        transdur = 2 * transdur
+        updatePlot();
+        stagger = tmpStagger; // restore stagger
+        transdur = tmpDur; // restore transition duration
+
+        var width = state.x.range()[1] - state.x.range()[0]
+        var height = state.y.range()[0] - state.y.range()[1]
+
+        // animate the box to full plot area and make it disappear
+        d3.select("#viz").select("svg")
+          .select("#zoomrect")
+            .transition()
+            .duration(transdur)
+            .attr("x", state.x.range()[0])
+            .attr("y", state.y.range()[0])
+            .attr("width", width)
+            .attr("height", height)
+            .transition()
+            .duration(transdur)
+            .style("stroke-opacity", 0.0)
+            .transition()
+            .remove()
       })
     .on("mousemove", function(d) {
         if (!mouseIsDown) {
           return;
         }
         pos = d3.mouse(this)
-        var lev = state.zoom.slize(-1, 0)
-        lev.x2 = state.x.invert(pos[0])
-        lev.y2 = state.y.invert(pos[1])
+        var lev = state.zoom[state.zoom.length - 1]
+        lev.x2 = pos[0]
+        lev.y2 = pos[1]
+        drawZoomRect()
       })
+
 }
 
 function initScales() {
@@ -186,7 +218,7 @@ function updateAxes() {
   var minorTick = 10
   var width = 3
 
-  var dur = 2 * transdur
+  var dur = transdur
 
   // tickwidth func for y axis
   tickW = function(d) {
@@ -413,9 +445,6 @@ function updateScales(xmin, xmax, ymin, ymax) {
 }
 
 function updatePlot() {
-  // stagger delay between cirlces' animation
-  var stagger = 1. / state.data.length * 2 * transdur
-
   var viz = d3.select("#viz").select("svg")
   var tooltip = d3.select("#tooltip")
 
@@ -428,7 +457,7 @@ function updatePlot() {
   circle.data(state.data, wordtext)
     .transition()
     .duration(transdur)
-    .delay(function(d, i) {return i * stagger;})
+    .delay(function(d, i) {return i / state.data.length * stagger;})
     .attr("cx", function(d, i) {return state.x(d.X);})
     .attr("cy", function(d, i) {return state.y(d.Y);})
     .style("fill", function(d) {return d3.rgb(255, state.gbscale(d.S), state.gbscale(d.S)).toString();})
