@@ -159,7 +159,6 @@ function initVizCanvas() {
 
         drawZoomRect(lev)
       })
-
 }
 
 function initScales() {
@@ -305,6 +304,14 @@ function updateAxes() {
     .exit()
     .remove()
 
+  var yTicksInRange = 0
+  var yticks = state.y.ticks()
+  for (i in yticks) {
+    if (yticks[i] > state.y.domain()[1] && yticks[i] < state.y.domain()[0]) {
+      yTicksInRange += 1
+    }
+  }
+
   // y labels
   viz.selectAll(".yLabel")
     .data(state.y.ticks(), tickKey)
@@ -316,9 +323,14 @@ function updateAxes() {
     .enter().append("svg:text")
     .attr("class","yLabel")
     .text( function(d) {
-        //if (String(d)[0] == "1") {
+        var first = parseInt(String(d)[0])
+        if (yTicksInRange < 18) {
           return state.y.tickFormat()(d);
-        //}
+        } else {
+          if (first <= 4 || first == 6) {
+            return state.y.tickFormat()(d);
+          }
+        }
         return "";
       })
     .attr("x", state.x.range()[0])
