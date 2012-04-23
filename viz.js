@@ -55,7 +55,7 @@ function initTooltip() {
 function initVizCanvas() {
   function drawZoomRect(lev) {
     var cornerLeft = d3.min([lev.x1, lev.x2])
-    var cornerTop = d3.min([lev.y1, lev.y2])
+    var cornerTop = d3.min([lev.y1, lev.y2]) + 30
 
     d3.select("#viz").select("svg").selectAll("#zoomrect")
       .data([0])
@@ -90,7 +90,6 @@ function initVizCanvas() {
         lev.y2 = pos[1]
         state.zoom.push(lev)
 
-        // allow browser to rerender
         drawZoomRect(lev)
       })
     .on("mouseup", function(d) {
@@ -152,10 +151,8 @@ function initVizCanvas() {
         }
         pos = d3.mouse(this)
         var lev = state.zoom[state.zoom.length - 1]
-        state.zoom.pop()
         lev.x2 = pos[0]
         lev.y2 = pos[1]
-        state.zoom.push(lev)
 
         drawZoomRect(lev)
       })
