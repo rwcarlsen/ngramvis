@@ -214,6 +214,26 @@ function initYearSlider() {
     .on("change", function(d) {return changeYear(this.value);});
 }
 
+function initNumDatumsSlider() {
+  // slider dimensions
+  var numDatumsSliderWidth = 500;
+
+  var numDatumsSlider = d3.select("#numDatumsSlider")
+    .attr("style","width:" + vizw + "px; text-align:center");
+  numDatumsSlider.append("div")
+    .attr("id","numDatumsLabel")
+    .text(state.numDatums)
+    .attr("style","font-size:200%;");
+  numDatumsSlider.append("input")
+    .attr("name","numDatums")
+    .attr("type","range")
+    .attr("min", 0)
+    .attr("max", 1000)
+    .attr("value", state.numDatums)
+    .attr("style", "width:" + numDatumsSliderWidth + "px;")
+    .on("change", function(d) {return changeNumDatums(this.value);});
+}
+
 function updateAxes() {
   var axisColor = "black"
   var tickColor = "black"
@@ -419,9 +439,16 @@ function reweight(v, changed) {
 // Function used by year slider when changed
 function changeYear(newYear) {
   state.currYear = newYear;
-  var yearSlider = d3.select("#yearSlider")
+  var yearSlider = d3.select("#yearSlider");
   yearSlider.select("#yearLabel").text(state.currYear);
   doUpdate = true;
+}
+
+function changeNumDatums(newNum) {
+    state.numDatums = newNum;
+    var numDatumsSlider = d3.select("#numDatumsSlider");
+    numDatumsSlider.select("#numDatumsLabel").text(state.numDatums);
+    doUpdate = true;
 }
 
 // recalcs scores based on weights and initiates data retrieval
@@ -531,6 +558,7 @@ initTooltip();
 initVizCanvas();
 initScales();
 initYearSlider();
+initNumDatumsSlider();
 initDOIsliders();
 
 // update/rerender the vis once per second at the most
