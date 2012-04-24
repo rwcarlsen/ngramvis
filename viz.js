@@ -15,6 +15,11 @@ var renderFreq = 800
 var transdur = 1000
 var stagger  = 2 * transdur
 
+// slider widths
+var doiSliderWidth = 100
+var yearSliderWidth = 500
+var numDatumsSliderWidth = 500
+
 /////// end adjustable params /////////
 
 var doUpdate = true;
@@ -168,10 +173,13 @@ function initTitle() {
     .text("Books vs. Page Density");
 }
 
-function initDOIsliders() {
-  // slider dimensions
-  var doiSliderWidth = 100;
+function initDOItitle() {
+  var vizTitle = d3.select("#doiTitle")
+    .attr("style", "text-align:center; font-size:150%; text-decoration:underline;")
+    .text("Degree of Interest");
+}
 
+function initDOIsliders() {
   var doiSliders = d3.select("#doiSliders");
 
   var addDOIslider = function(idName, displayName, i) {
@@ -194,15 +202,50 @@ function initDOIsliders() {
   addDOIslider("pd", "Page Density", 4);
 }
 
-function initYearSlider() {
-  // slider dimensions
-  var yearSliderWidth = 500;
+function initDOIlegend() {
+  var circleBuffer = 15;
+  var circleX = doiSliderWidth / 2;
 
+  var doiLegend = d3.select("#doiLegend");
+  
+  doiLegend.attr("style", "text-align:center;")
+  doiLegend.html("<strong>Legend</strong>");
+  
+  var doiLegendSVG = doiLegend.append("svg:svg");
+  
+  // Little circle
+  doiLegendSVG.append("svg:circle")
+    .attr("r", rmin)
+    .attr("cx", circleX)
+    .attr("cy", rmax + circleBuffer)
+    .style("stroke","black")
+    .style("fill","white");
+  doiLegendSVG.append("svg:text")
+    .attr("x", circleX + rmax + circleBuffer)
+    .attr("y", rmax + circleBuffer)
+    .attr("dominant-baseline","central")
+    .text("Minimum DOI");
+    
+  // Big circle
+  doiLegendSVG.append("svg:circle")
+    .attr("r", rmax)
+    .attr("cx", circleX)
+    .attr("cy", 2*rmax + 2*circleBuffer)
+    .style("stroke","black")
+    .style("fill","red");
+  doiLegendSVG.append("svg:text")
+    .attr("x", circleX + rmax + circleBuffer)
+    .attr("y", 2*rmax + 2*circleBuffer)
+    .attr("dominant-baseline","central")
+    .text("Maximum DOI");
+}
+
+function initYearSlider() {
   var yearSlider = d3.select("#yearSlider")
     .attr("style","width:" + vizw + "px; text-align:center");
   yearSlider.append("div")
     .attr("id","yearLabel")
-    .text(state.currYear)
+    .text("Year: " + state.currYear)
     .attr("style","font-size:200%;");
   yearSlider.append("input")
     .attr("name","time")
@@ -215,14 +258,11 @@ function initYearSlider() {
 }
 
 function initNumDatumsSlider() {
-  // slider dimensions
-  var numDatumsSliderWidth = 500;
-
   var numDatumsSlider = d3.select("#numDatumsSlider")
     .attr("style","width:" + vizw + "px; text-align:center");
   numDatumsSlider.append("div")
     .attr("id","numDatumsLabel")
-    .text(state.numDatums)
+    .text("Datapoints displayed: " + state.numDatums)
     .attr("style","font-size:200%;");
   numDatumsSlider.append("input")
     .attr("name","numDatums")
@@ -440,14 +480,14 @@ function reweight(v, changed) {
 function changeYear(newYear) {
   state.currYear = newYear;
   var yearSlider = d3.select("#yearSlider");
-  yearSlider.select("#yearLabel").text(state.currYear);
+  yearSlider.select("#yearLabel").text("Year: " + state.currYear);
   doUpdate = true;
 }
 
 function changeNumDatums(newNum) {
     state.numDatums = newNum;
     var numDatumsSlider = d3.select("#numDatumsSlider");
-    numDatumsSlider.select("#numDatumsLabel").text(state.numDatums);
+    numDatumsSlider.select("#numDatumsLabel").text("Datapoints displayed: " + state.numDatums);
     doUpdate = true;
 }
 
@@ -559,7 +599,9 @@ initVizCanvas();
 initScales();
 initYearSlider();
 initNumDatumsSlider();
+initDOItitle();
 initDOIsliders();
+initDOIlegend();
 
 // update/rerender the vis once per second at the most
 setInterval(function() {
