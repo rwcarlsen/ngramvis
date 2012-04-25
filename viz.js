@@ -60,7 +60,7 @@ function initTooltip() {
 function initVizCanvas() {
   function drawZoomRect(lev) {
     var cornerLeft = d3.min([lev.x1, lev.x2])
-    var cornerTop = d3.min([lev.y1, lev.y2]) + 30
+    var cornerTop = d3.min([lev.y1, lev.y2])
 
     d3.select("#viz").select("svg").selectAll("#zoomrect")
       .data([0])
