@@ -38,6 +38,7 @@ function initState() {
   state.x = null // holds the x axis scale func
   state.y = null // holds the y axis scale func
   state.zoom = []
+  state.zoomBox = null
   state.weights = "0/0/0/0/0"
 }
 
@@ -59,9 +60,9 @@ function initTooltip() {
 
 function initVizCanvas() {
 
-  function drawZoomRect(lev) {
-    var cornerLeft = d3.min([lev.x1, lev.x2])
-    var cornerTop = d3.min([lev.y1, lev.y2])
+  function drawZoomRect() {
+    var cornerLeft = d3.min([state.zoomBox.x1, state.zoomBox.x2])
+    var cornerTop = d3.min([state.zoomBox.y1, state.zoomBox.y2])
 
     d3.select("#viz").select("svg").selectAll("#zoomrect")
       .data([0])
@@ -100,14 +101,13 @@ function initVizCanvas() {
         }
         mouseIsDown = true
         pos = d3.mouse(this)
-        var lev = new Object()
-        lev.x1 = pos[0]
-        lev.y1 = pos[1]
-        lev.x2 = pos[0]
-        lev.y2 = pos[1]
-        state.zoom.push(lev)
+        state.zoomBox = new Object()
+        state.zoomBox.x1 = pos[0]
+        state.zoomBox.y1 = pos[1]
+        state.zoomBox.x2 = pos[0]
+        state.zoomBox.y2 = pos[1]
 
-        drawZoomRect(lev)
+        drawZoomRect()
       })
     .on("mouseup", function(d) {
         if (!mouseIsDown) {
@@ -120,10 +120,22 @@ function initVizCanvas() {
         // get min/max of x and y and rescale/replot
         mouseIsDown = false
         pos = d3.mouse(this)
-        var lev = state.zoom[state.zoom.length - 1]
-        lev.x2 = pos[0]
-        lev.y2 = pos[1]
+        state.zoomBox.x2 = pos[0]
+        state.zoomBox.y2 = pos[1]
 
+        // check for/ignore too small zoom box
+        var lev = state.zoomBox
+        var thresh = 10
+        var xmin = d3.min([lev.x1, lev.x2])
+        var xmax = d3.max([lev.x1, lev.x2])
+        var ymin = d3.min([lev.y1, lev.y2])
+        var ymax = d3.max([lev.y1, lev.y2])
+        if (xmax - xmin < thresh || ymax - ymin < thresh) {
+          state.zoom.pop();
+          return;
+        }
+
+        updateScales(state.x.invert(xmin), state.x.invert(xmax), state.y.invert(ymax), state.y.invert(ymin));
         renderNewZoom()
       })
     .on("mousemove", function(d) {
@@ -131,11 +143,10 @@ function initVizCanvas() {
           return;
         }
         pos = d3.mouse(this)
-        var lev = state.zoom[state.zoom.length - 1]
-        lev.x2 = pos[0]
-        lev.y2 = pos[1]
+        state.zoomBox.x2 = pos[0]
+        state.zoomBox.y2 = pos[1]
 
-        drawZoomRect(lev)
+        drawZoomRect()
       })
 }
 
@@ -152,28 +163,13 @@ function renderNewZoom() {
     return
   }
 
-  var lev = state.zoom[state.zoom.length - 1]
-
-  // check for/ignore too small zoom box
-  var thresh = 10
-  var xmin = d3.min([lev.x1, lev.x2])
-  var xmax = d3.max([lev.x1, lev.x2])
-  var ymin = d3.min([lev.y1, lev.y2])
-  var ymax = d3.max([lev.y1, lev.y2])
-
-  if (xmax - xmin < thresh || ymax - ymin < thresh) {
-    state.zoom.pop();
-    return;
-  }
-
   // update plot with no stagger and longer dur than normal
   var tmpStagger = stagger;
   var tmpDur = transdur;
   stagger = 0;
   transdur = 2 * transdur
 
-  updateScales(state.x.invert(xmin), state.x.invert(xmax), state.y.invert(ymax), state.y.invert(ymin));
-
+  renderAxes();
   updatePlot();
 
   var width = state.x.range()[1] - state.x.range()[0]
@@ -199,6 +195,7 @@ function renderNewZoom() {
 
 function initScales() {
   updateScales(1, 30, 1, 150000)
+  renderAxes();
 }
 
 function initTitle() {
@@ -308,7 +305,7 @@ function initNumDatumsSlider() {
     .on("change", function(d) {return changeNumDatums(this.value);});
 }
 
-function updateAxes() {
+function renderAxes() {
   var axisColor = "black"
   var tickColor = "black"
 
@@ -561,13 +558,6 @@ function updateScales(xmin, xmax, ymin, ymax) {
   state.y = d3.scale.log()
    .domain([ymin, ymax])
    .range([vizh-pad.bottom, pad.top])
-
-  updateAxes();
-
-  var lev = new Object()
-  lev.x = state.x
-  lev.y = state.y
-  state.zoom.push(lev)
 }
 
 function updatePlot() {
