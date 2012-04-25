@@ -58,6 +58,7 @@ function initTooltip() {
 }
 
 function initVizCanvas() {
+
   function drawZoomRect(lev) {
     var cornerLeft = d3.min([lev.x1, lev.x2])
     var cornerTop = d3.min([lev.y1, lev.y2])
@@ -84,8 +85,19 @@ function initVizCanvas() {
   d3.select("#viz").append("svg:svg")
     .attr("width", vizw)
     .attr("height", vizh)
+    .on("contextmenu", function(d) {
+        event.preventDefault()
+        if (state.zoom.length <= 1) {
+          return
+        }
+        state.zoom.pop()
+        renderNewZoom()
+      })
     .on("mousedown", function(d) {
         event.preventDefault()
+        if (isRightClick(event)) {
+          return
+        }
         mouseIsDown = true
         pos = d3.mouse(this)
         var lev = new Object()
@@ -101,6 +113,9 @@ function initVizCanvas() {
         if (!mouseIsDown) {
           return;
         }
+        if (isRightClick(event)) {
+          return
+        }
 
         // get min/max of x and y and rescale/replot
         mouseIsDown = false
@@ -109,46 +124,7 @@ function initVizCanvas() {
         lev.x2 = pos[0]
         lev.y2 = pos[1]
 
-        // check for/ignore too small zoom box
-        var thresh = 10
-        var xmin = d3.min([lev.x1, lev.x2])
-        var ymin = d3.min([lev.y1, lev.y2])
-        var xmax = d3.max([lev.x1, lev.x2])
-        var ymax = d3.max([lev.y1, lev.y2])
-        if (xmax - xmin < thresh || ymax - ymin < thresh) {
-          state.zoom.pop();
-          return;
-        }
-
-        // update plot with no stagger and longer dur than normal
-        var tmpStagger = stagger;
-        var tmpDur = transdur;
-        stagger = 0;
-        transdur = 2 * transdur
-        updatePlot();
-
-        updateScales(state.x.invert(xmin), state.x.invert(xmax),
-          state.y.invert(ymax), state.y.invert(ymin));
-
-        var width = state.x.range()[1] - state.x.range()[0]
-        var height = state.y.range()[0] - state.y.range()[1]
-
-        // animate the box to full plot area and make it disappear
-        d3.select("#viz").select("svg")
-          .select("#zoomrect")
-            .transition()
-            .duration(transdur)
-            .attr("x", state.x.range()[0])
-            .attr("y", state.y.range()[1])
-            .attr("width", width)
-            .attr("height", height)
-            .style("fill-opacity", 0.0)
-            .transition()
-            .remove()
-
-        // restore original timing
-        stagger = tmpStagger;
-        transdur = tmpDur;
+        renderNewZoom()
       })
     .on("mousemove", function(d) {
         if (!mouseIsDown) {
@@ -161,6 +137,64 @@ function initVizCanvas() {
 
         drawZoomRect(lev)
       })
+}
+
+function isRightClick(e) {
+  var rightclick;
+  if (!e) var e = window.event;
+  if (e.which) rightclick = (e.which == 3);
+  else if (e.button) rightclick = (e.button == 2);
+  return rightclick
+}
+
+function renderNewZoom() {
+  if (state.zoom.length == 0) {
+    return
+  }
+
+  var lev = state.zoom[state.zoom.length - 1]
+
+  // check for/ignore too small zoom box
+  var thresh = 10
+  var xmin = d3.min([lev.x1, lev.x2])
+  var xmax = d3.max([lev.x1, lev.x2])
+  var ymin = d3.min([lev.y1, lev.y2])
+  var ymax = d3.max([lev.y1, lev.y2])
+
+  if (xmax - xmin < thresh || ymax - ymin < thresh) {
+    state.zoom.pop();
+    return;
+  }
+
+  // update plot with no stagger and longer dur than normal
+  var tmpStagger = stagger;
+  var tmpDur = transdur;
+  stagger = 0;
+  transdur = 2 * transdur
+
+  updateScales(state.x.invert(xmin), state.x.invert(xmax), state.y.invert(ymax), state.y.invert(ymin));
+
+  updatePlot();
+
+  var width = state.x.range()[1] - state.x.range()[0]
+  var height = state.y.range()[0] - state.y.range()[1]
+
+  // animate the box to full plot area and make it disappear
+  d3.select("#viz").select("svg")
+    .select("#zoomrect")
+      .transition()
+      .duration(transdur)
+      .attr("x", state.x.range()[0])
+      .attr("y", state.y.range()[1])
+      .attr("width", width)
+      .attr("height", height)
+      .style("fill-opacity", 0.0)
+      .transition()
+      .remove()
+
+  // restore original timing
+  stagger = tmpStagger;
+  transdur = tmpDur;
 }
 
 function initScales() {
@@ -529,6 +563,11 @@ function updateScales(xmin, xmax, ymin, ymax) {
    .range([vizh-pad.bottom, pad.top])
 
   updateAxes();
+
+  var lev = new Object()
+  lev.x = state.x
+  lev.y = state.y
+  state.zoom.push(lev)
 }
 
 function updatePlot() {
@@ -537,6 +576,7 @@ function updatePlot() {
 
   var circle = viz.selectAll("circle")
 
+  alert("foopy")
   // create color scale based on something ????????????????????
   state.gbscale = d3.scale.linear().domain([state.minscore, state.maxscore]).range([255, 0])
 
