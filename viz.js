@@ -627,7 +627,12 @@ function renderPlot() {
     .attr("cx", function(d, i) {return state.x(d.X);})
     .attr("cy", function(d, i) {return state.y(d.Y);})
     .style("fill", function(d) {return d3.rgb(255, state.gbscale(d.S), state.gbscale(d.S)).toString();})
-    .attr("r", function(d) {return getr(d);});
+    .attr("r", function(d) {
+        if (state.x(d.X) < state.x.range()[0] + rmax || state.y(d.Y) < state.y.range()[1] + rmax) {
+          return 0;
+        }
+        return getr(d);
+      });
 
   // add new circles
   circle.data(state.data, wordtext)
@@ -658,7 +663,12 @@ function renderPlot() {
       })
     .transition()
     .duration(transdur)
-    .attr("r", function(d) {return getr(d);});
+    .attr("r", function(d) {
+        if (state.x(d.X) < state.x.range()[0] + rmax || state.y(d.Y) < state.y.range()[1] + rmax) {
+          return 0;
+        }
+        return getr(d);
+      });
 
   // remove words that are not longer to be displayed
   circle.data(state.data, wordtext).exit()
