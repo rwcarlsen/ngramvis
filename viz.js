@@ -628,7 +628,7 @@ function renderPlot() {
     .attr("cy", function(d, i) {return state.y(d.Y);})
     .style("fill", function(d) {return d3.rgb(255, state.gbscale(d.S), state.gbscale(d.S)).toString();})
     .attr("r", function(d) {
-        if (state.x(d.X) < state.x.range()[0] + rmax || state.y(d.Y) < state.y.range()[1] + rmax) {
+        if (state.x(d.X) < state.x.range()[0] + rmax || state.y(d.Y) > state.y.range()[0] - rmax) {
           return 0;
         }
         return getr(d);
@@ -664,7 +664,7 @@ function renderPlot() {
     .transition()
     .duration(transdur)
     .attr("r", function(d) {
-        if (state.x(d.X) < state.x.range()[0] + rmax || state.y(d.Y) < state.y.range()[1] + rmax) {
+        if (state.x(d.X) < state.x.range()[0] + rmax || state.y(d.Y) > state.y.range()[0] - rmax) {
           return 0;
         }
         return getr(d);
