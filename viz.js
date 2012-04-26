@@ -59,40 +59,12 @@ function initTooltip() {
 }
 
 function initVizCanvas() {
-
-  function drawZoomRect() {
-    var cornerLeft = d3.min([state.zoomBox.x1, state.zoomBox.x2])
-    var cornerTop = d3.min([state.zoomBox.y1, state.zoomBox.y2])
-
-    d3.select("#viz").select("svg").selectAll("#zoomrect")
-      .data([0])
-        .attr("x", cornerLeft)
-        .attr("y", cornerTop)
-        .attr("width", Math.abs(lev.x1 - lev.x2))
-        .attr("height", Math.abs(lev.y1 - lev.y2))
-        
-
-    d3.select("#viz").select("svg").selectAll("#zoomrect")
-      .data([0]).enter().append("svg:rect")
-        .attr("id", "zoomrect")
-        .attr("x", cornerLeft)
-        .attr("y", cornerTop)
-        .attr("width", Math.abs(lev.x1 - lev.x2))
-        .attr("height", Math.abs(lev.y1 - lev.y2))
-        .style("fill", "black")
-        .style("fill-opacity", 0.4)
-  }
-
   d3.select("#viz").append("svg:svg")
     .attr("width", vizw)
     .attr("height", vizh)
     .on("contextmenu", function(d) {
         event.preventDefault()
-        if (state.zoom.length <= 1) {
-          return
-        }
-        state.zoom.pop()
-        renderNewZoom()
+        popZoomLevel()
       })
     .on("mousedown", function(d) {
         event.preventDefault()
@@ -124,18 +96,16 @@ function initVizCanvas() {
         state.zoomBox.y2 = pos[1]
 
         // check for/ignore too small zoom box
-        var lev = state.zoomBox
         var thresh = 10
-        var xmin = d3.min([lev.x1, lev.x2])
-        var xmax = d3.max([lev.x1, lev.x2])
-        var ymin = d3.min([lev.y1, lev.y2])
-        var ymax = d3.max([lev.y1, lev.y2])
+        var xmin = d3.min([state.zoomBox.x1, state.zoomBox.x2])
+        var xmax = d3.max([state.zoomBox.x1, state.zoomBox.x2])
+        var ymin = d3.min([state.zoomBox.y1, state.zoomBox.y2])
+        var ymax = d3.max([state.zoomBox.y1, state.zoomBox.y2])
         if (xmax - xmin < thresh || ymax - ymin < thresh) {
-          state.zoom.pop();
           return;
         }
 
-        updateScales(state.x.invert(xmin), state.x.invert(xmax), state.y.invert(ymax), state.y.invert(ymin));
+        appendZoomLevel(state.x.invert(xmin), state.x.invert(xmax), state.y.invert(ymax), state.y.invert(ymin));
         renderNewZoom()
       })
     .on("mousemove", function(d) {
@@ -150,51 +120,8 @@ function initVizCanvas() {
       })
 }
 
-function isRightClick(e) {
-  var rightclick;
-  if (!e) var e = window.event;
-  if (e.which) rightclick = (e.which == 3);
-  else if (e.button) rightclick = (e.button == 2);
-  return rightclick
-}
-
-function renderNewZoom() {
-  if (state.zoom.length == 0) {
-    return
-  }
-
-  // update plot with no stagger and longer dur than normal
-  var tmpStagger = stagger;
-  var tmpDur = transdur;
-  stagger = 0;
-  transdur = 2 * transdur
-
-  renderAxes();
-  updatePlot();
-
-  var width = state.x.range()[1] - state.x.range()[0]
-  var height = state.y.range()[0] - state.y.range()[1]
-
-  // animate the box to full plot area and make it disappear
-  d3.select("#viz").select("svg")
-    .select("#zoomrect")
-      .transition()
-      .duration(transdur)
-      .attr("x", state.x.range()[0])
-      .attr("y", state.y.range()[1])
-      .attr("width", width)
-      .attr("height", height)
-      .style("fill-opacity", 0.0)
-      .transition()
-      .remove()
-
-  // restore original timing
-  stagger = tmpStagger;
-  transdur = tmpDur;
-}
-
 function initScales() {
-  updateScales(1, 30, 1, 150000)
+  appendZoomLevel(1, 30, 1, 150000)
   renderAxes();
 }
 
@@ -305,6 +232,133 @@ function initNumDatumsSlider() {
     .on("change", function(d) {return changeNumDatums(this.value);});
 }
 
+function isRightClick(e) {
+  var rightclick;
+  if (!e) var e = window.event;
+  if (e.which) rightclick = (e.which == 3);
+  else if (e.button) rightclick = (e.button == 2);
+  return rightclick
+}
+
+function renderNewZoom(reverse) {
+  if (state.zoom.length == 0) {
+    return
+  }
+  drawZoomRect()
+
+  // update plot with no stagger and longer dur than normal
+  var tmpStagger = stagger;
+  var tmpDur = transdur;
+  stagger = 0;
+  transdur = 2 * transdur
+
+  renderAxes();
+  renderPlot();
+
+  var width = state.x.range()[1] - state.x.range()[0]
+  var height = state.y.range()[0] - state.y.range()[1]
+  var cornerLeft = d3.min([state.zoomBox.x1, state.zoomBox.x2])
+  var cornerTop = d3.min([state.zoomBox.y1, state.zoomBox.y2])
+
+  // animate the box to full plot area and make it disappear
+  if (reverse) {
+    d3.select("#viz").select("svg")
+      .select("#zoomrect")
+        .style("fill-opacity", 0.0)
+        .attr("x", state.x.range()[0])
+        .attr("y", state.y.range()[1])
+        .attr("width", width)
+        .attr("height", height)
+        .transition()
+        .duration(transdur)
+        .attr("x", cornerLeft)
+        .attr("y", cornerTop)
+        .attr("width", Math.abs(state.zoomBox.x1 - state.zoomBox.x2))
+        .attr("height", Math.abs(state.zoomBox.y1 - state.zoomBox.y2))
+        .style("fill-opacity", 0.4)
+        .transition()
+        .remove()
+  } else {
+    d3.select("#viz").select("svg")
+      .select("#zoomrect")
+        .transition()
+        .duration(transdur)
+        .attr("x", state.x.range()[0])
+        .attr("y", state.y.range()[1])
+        .attr("width", width)
+        .attr("height", height)
+        .style("fill-opacity", 0.0)
+        .transition()
+        .remove()
+  }
+
+  // restore original timing
+  stagger = tmpStagger;
+  transdur = tmpDur;
+}
+
+function popZoomLevel() {
+  if (state.zoom.length <= 1) {
+    return
+  }
+
+  state.zoomBox = state.zoom[state.zoom.length - 1].box
+
+  state.zoom.pop()
+  var lev = state.zoom[state.zoom.length - 1]
+  state.x = lev.x
+  state.y = lev.y
+  renderNewZoom(true)
+}
+
+function appendZoomLevel(xmin, xmax, ymin, ymax) {
+  // additional offsets making space for axis text labels
+  var leftOffset = 40
+  var bottomOffset = 40
+
+  //padding around the graphing space
+  var pad = new Object()
+  pad.left = 15 + leftOffset
+  pad.right = 15
+  pad.top = 15
+  pad.bottom = 15 + bottomOffset
+
+  state.x = d3.scale.log()
+   .domain([xmin, xmax])
+   .range([pad.left, vizw-pad.right])
+  state.y = d3.scale.log()
+   .domain([ymin, ymax])
+   .range([vizh-pad.bottom, pad.top])
+
+   var lev = new Object()
+   lev.x = state.x
+   lev.y = state.y
+   lev.box = state.zoomBox
+   state.zoom.push(lev)
+}
+
+function drawZoomRect() {
+  var cornerLeft = d3.min([state.zoomBox.x1, state.zoomBox.x2])
+  var cornerTop = d3.min([state.zoomBox.y1, state.zoomBox.y2])
+
+  d3.select("#viz").select("svg").selectAll("#zoomrect")
+    .data([0])
+      .attr("x", cornerLeft)
+      .attr("y", cornerTop)
+      .attr("width", Math.abs(state.zoomBox.x1 - state.zoomBox.x2))
+      .attr("height", Math.abs(state.zoomBox.y1 - state.zoomBox.y2))
+
+  d3.select("#viz").select("svg").selectAll("#zoomrect")
+    .data([0]).enter().append("svg:rect")
+      .attr("id", "zoomrect")
+      .attr("x", cornerLeft)
+      .attr("y", cornerTop)
+      .attr("width", Math.abs(state.zoomBox.x1 - state.zoomBox.x2))
+      .attr("height", Math.abs(state.zoomBox.y1 - state.zoomBox.y2))
+      .style("fill", "black")
+      .style("fill-opacity", 0.4)
+}
+
 function renderAxes() {
   var axisColor = "black"
   var tickColor = "black"
@@ -386,7 +440,11 @@ function renderAxes() {
     .attr("text-anchor", "middle")
     .attr("transform", function(d) {
         return "rotate(-70 " + state.x(d) + " " + (state.y.range()[0] + 40) + ")";
-      })
+    })
+    .style("fill-opacity", 0)
+    .transition()
+    .delay(transdur)
+    .style("fill-opacity", 1)
   viz.selectAll(".xLabel")
     .data(state.x.ticks(), tickKey)
     .exit()
@@ -425,6 +483,10 @@ function renderAxes() {
     .attr("y", function(d) {return state.y(d);})
     .attr("text-anchor", "end")
     .attr("transform", "translate(-15 4)")
+    .style("fill-opacity", 0)
+    .transition()
+    .delay(transdur)
+    .style("fill-opacity", 1)
   viz.selectAll(".yLabel")
     .data(state.y.ticks(), tickKey)
     .exit().remove()
@@ -449,6 +511,10 @@ function renderAxes() {
     .attr("y2", xTickEndsFunc(1))
     .attr("stroke", tickColor)
     .attr("stroke-width", tickW)
+    .style("stroke-opacity", 0)
+    .transition()
+    .delay(transdur)
+    .style("stroke-opacity", 1)
   viz.selectAll(".xTicks")
     .data(state.x.ticks(), tickKey)
     .exit().remove()
@@ -473,6 +539,10 @@ function renderAxes() {
     .attr("x2", yTickEndsFunc(1))
     .attr("stroke", tickColor)
     .attr("stroke-width", tickW)
+    .style("stroke-opacity", 0)
+    .transition()
+    .delay(transdur)
+    .style("stroke-opacity", 1)
   viz.selectAll(".yTicks")
     .data(state.y.ticks(), tickKey)
     .exit().remove()
@@ -536,37 +606,16 @@ function fetchData(ndatums) {
       state.minscore = d3.min(state.data, function(d) {return d.S})
       state.maxscore = d3.max(state.data, function(d) {return d.S})
 
-      updatePlot();
+      renderPlot();
     });
 }
 
-function updateScales(xmin, xmax, ymin, ymax) {
-  // additional offsets making space for axis text labels
-  var leftOffset = 40
-  var bottomOffset = 40
-
-  //padding around the graphing space
-  var pad = new Object()
-  pad.left = 15 + leftOffset
-  pad.right = 15
-  pad.top = 15
-  pad.bottom = 15 + bottomOffset
-
-  state.x = d3.scale.log()
-   .domain([xmin, xmax])
-   .range([pad.left, vizw-pad.right])
-  state.y = d3.scale.log()
-   .domain([ymin, ymax])
-   .range([vizh-pad.bottom, pad.top])
-}
-
-function updatePlot() {
+function renderPlot() {
   var viz = d3.select("#viz").select("svg")
   var tooltip = d3.select("#tooltip")
 
   var circle = viz.selectAll("circle")
 
-  alert("foopy")
   // create color scale based on something ????????????????????
   state.gbscale = d3.scale.linear().domain([state.minscore, state.maxscore]).range([255, 0])
 
