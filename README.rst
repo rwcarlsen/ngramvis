@@ -52,6 +52,8 @@ Goals
 
     #. More practical time navigation.  Likely a slider.
 
+    #. User control of number of datapoints displayed.
+
     #. Use color and size to represent different things rather than redundant
        encoding of the DOI score.
 
@@ -71,6 +73,8 @@ Goals
     * ability for user to select positional (axis) encodings.
 
     * appropriate count normalizations.
+
+    * an option to allow users to use binning to see points with highest local DOI
 
 Milestones
 ----------
@@ -95,7 +99,7 @@ Milestones
 
   * Week 3 (April 28) - priority items 2 and 3 completed
 
-  * Week 4 (May 5) - priority item 4 completed
+  * Week 4 (May 5) - priority items 4 and 5 completed
 
   * Week 5 (May 12) - (optional items time permitting) and writeup completed.
 
@@ -178,7 +182,7 @@ Initial Progress
 3/9/2012 Update
 +++++++++++++++
 
-Screenshot of progress `here <https://plus.google.com/photos/110223354232123272707/albums/5717258253797892417?authkey=CKfEyL2uk-31zwE>`_.
+Screenshot of progress `here <https://github.com/EAlexander/ngramvis/blob/master/Screenshot.png>`_.
 
 * created a rudimentary semi-interative dummy visualization.
 
@@ -200,4 +204,14 @@ Screenshot of progress `here <https://plus.google.com/photos/1102233542321232727
     tops.  This could potentially be addressed by having serverside processing
     that only sends
 
+4/27/2012 Update
+++++++++++++++++
 
+Screenshot of progress `here <https://github.com/EAlexander/ngramvis/blob/master/Screenshot-4-27.png>`_.
+
+* On track with project plan, having completed goals 1, 2, and 3
+
+* Have also fully implemented zooming functionality, which allows the user to
+  zoom in on densely clustered datapoints and zoom out to see the entire set.
+
+* 
