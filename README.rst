@@ -44,15 +44,13 @@ Goals
 
 **Project 2:**
 
-  Items in priority order:
+  High priority:
 
     #. Design and implement an intelligent and more aesthetic layout for the
        visualization.  Intelligent labeling of sliders, axes, etc. will be
        added.
 
     #. More practical time navigation.  Likely a slider.
-
-    #. User control of number of datapoints displayed.
 
     #. Use color and size to represent different things rather than redundant
        encoding of the DOI score.
@@ -66,11 +64,15 @@ Goals
 
       - age of a word (how long ago did it broke some threshold)
 
+  Medium priority:
+
+    #. Zoom functionality.
+
+    #. User control of number of datapoints displayed.
+
+    #. Ability for user to select positional (axis) encodings.
+
   Optional (time permitting):
-
-    * some sort of zoom functionality.
-
-    * ability for user to select positional (axis) encodings.
 
     * appropriate count normalizations.
 
@@ -99,7 +101,7 @@ Milestones
 
   * Week 3 (April 28) - priority items 2 and 3 completed
 
-  * Week 4 (May 5) - priority items 4 and 5 completed
+  * Week 4 (May 5) - priority item 4 completed, medium priority items begun
 
   * Week 5 (May 12) - (optional items time permitting) and writeup completed.
 
@@ -179,8 +181,8 @@ Initial Reading
 Initial Progress
 ----------------
 
-3/9/2012 Update
-+++++++++++++++
+3/9/2012 Progress Update
+++++++++++++++++++++++++
 
 Screenshot of progress `here <https://github.com/EAlexander/ngramvis/blob/master/Screenshot.png>`_.
 
@@ -204,14 +206,21 @@ Screenshot of progress `here <https://github.com/EAlexander/ngramvis/blob/master
     tops.  This could potentially be addressed by having serverside processing
     that only sends
 
-4/27/2012 Update
-++++++++++++++++
+4/27/2012 Progress Update
++++++++++++++++++++++++++
 
 Screenshot of progress `here <https://github.com/EAlexander/ngramvis/blob/master/Screenshot-4-27.png>`_.
 
-* On track with project plan, having completed goals 1, 2, and 3
+* On track with project plan:
 
-* Have also fully implemented zooming functionality, which allows the user to
-  zoom in on densely clustered datapoints and zoom out to see the entire set.
+  * Have completed first two high priority items (aesthetic clean-up and practical time control).
 
-* 
+  * Have also completed first two medium priority items (zoom functionality and
+    number of datapoints control). Zoom functionality allows the user to zoom
+    in on densely clustered datapoints and zoom out to see the entire set.
+    Datapoints control allows users to better fine-tune their search and may
+    be useful for potential later binning functionality.
+
+* General plan going forward is to give the user more control over what values
+  are being highlighted and displayed. The intent is for our visualization to
+  cover a broad range of use-cases.
