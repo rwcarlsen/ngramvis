@@ -56,42 +56,23 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
   data := make([]*XYonly, 0)
 
   var weights, maxes Weights
-  maxes.Length = 12 * 1.333333
-  maxes.Count = 1e7 * .15256 * 430
-  maxes.Pages = 1e7 * 2.7316
-  maxes.Books = 1e5 * 6.6948 * 0.162
-  maxes.PageDen = 17 * 1.05334 * 1.123
-
+  setMaxWeights(&maxes)
 
   return func(w http.ResponseWriter, req *http.Request) {
-    defer func() {
-      if r := recover(); r != nil {
-        fmt.Println("Recovered in 'handler'", r)
-      }
-    }()
+    //defer func() {
+    //  if r := recover(); r != nil {
+    //    fmt.Println(r)
+    //    fmt.Println("Recovered in 'handler'", r)
+    //  }
+    //}()
 
     path := req.URL.Path
 
     rangeText := strings.Split(path, "/")
     if rangeText[2] == "reweight" {
       year := rangeText[3]
-      length, _  := strconv.ParseFloat(rangeText[4], 32);
-      count, _   := strconv.ParseFloat(rangeText[5], 32);
-      pages, _   := strconv.ParseFloat(rangeText[6], 32);
-      books, _   := strconv.ParseFloat(rangeText[7], 32);
-      pageden, _ := strconv.ParseFloat(rangeText[8], 32);
 
-      tot := float32(math.Abs(length) + math.Abs(count) + math.Abs(pages) + math.Abs(books) + math.Abs(pageden))
-      if tot == 0 {
-        tot = 1
-      }
-
-      weights.Length = float32(length) / tot
-      weights.Count = float32(count) / tot
-      weights.Pages = float32(pages) / tot
-      weights.Books = float32(books) / tot
-      weights.PageDen = float32(pageden) / tot
-      fmt.Println("new weights: ", length, count, pages, books, pageden)
+      updateWeights(rangeText, &weights)
 
       fmt.Println("scoring, building XYonly, and sorting...")
 
@@ -102,7 +83,7 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       scored, scores := GetScores(words, scorer)
 
       // convert to XYonly structs
-      data = BuildXY(scored, scores, Pden(year), Bk(year))
+      data = BuildXY(scored, scores, Pden(year), Bk(year), Tmp(year))
 
       // sort it
       data = TreeToXYonly(XYonlyToTree(data, func(a, b interface{}) bool {
@@ -126,11 +107,45 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
 
     marshaled, err := json.Marshal(data[lower:lower + numWanted])
     if err != nil {
+      fmt.Println("rangeText: ", rangeText)
+      fmt.Println(err)
       panic(err)
     }
 
     _, _ = w.Write(marshaled)
     fmt.Println("request filled.")
   }
+}
+
+func setMaxWeights(w *Weights) {
+  w.Length = 12 * 1.333333
+  w.Count = 1e7 * .15256 * 430
+  w.Pages = 1e7 * 2.7316
+  w.Books = 1e5 * 6.6948 * 0.162
+  w.PageDen = 17 * 1.05334 * 1.123
+  w.Temp = 1
+}
+
+func updateWeights(text []string, w *Weights) {
+  length, _  := strconv.ParseFloat(text[4], 32);
+  count, _   := strconv.ParseFloat(text[5], 32);
+  pages, _   := strconv.ParseFloat(text[6], 32);
+  books, _   := strconv.ParseFloat(text[7], 32);
+  pageden, _ := strconv.ParseFloat(text[8], 32);
+  temp, _ := strconv.ParseFloat(text[9], 32);
+
+  tot := float32(math.Abs(length) + math.Abs(count) + math.Abs(pages) + math.Abs(books) + math.Abs(pageden) + math.Abs(temp))
+  if tot == 0 {
+    tot = 1
+  }
+
+  w.Length = float32(length) / tot
+  w.Count = float32(count) / tot
+  w.Pages = float32(pages) / tot
+  w.Books = float32(books) / tot
+  w.PageDen = float32(pageden) / tot
+  w.Temp = float32(temp) / tot
+
+  fmt.Println("new weights: ", length, count, pages, books, pageden, temp)
 }
 

@@ -5,8 +5,8 @@ var vizh = 600;
 var vizw = 900;
 
 // radii for datum circles
-var rmin = 3
-var rmax = 10
+var rmin = 4
+var rmax = 11
 
 // freq of auto rerendering
 var renderFreq = 800
@@ -39,7 +39,7 @@ function initState() {
   state.y = null // holds the y axis scale func
   state.zoom = []
   state.zoomBox = null
-  state.weights = "0/0/0/0/0"
+  state.weights = "0/0/0/0/0/0"
 }
 
 function initTooltip() {
@@ -158,6 +158,7 @@ function initDOIsliders() {
   addDOIslider("pages", "# Pages", 2);
   addDOIslider("books", "# Books", 3);
   addDOIslider("pd", "Page Density", 4);
+  addDOIslider("temperature", "Temperature", 5);
 }
 
 function initDOIlegend() {
@@ -190,7 +191,7 @@ function initDOIlegend() {
     .attr("cx", circleX)
     .attr("cy", 2*rmax + 2*circleBuffer)
     .style("stroke","black")
-    .style("fill","red");
+    .style("fill","white");
   doiLegendSVG.append("svg:text")
     .attr("x", circleX + rmax + circleBuffer)
     .attr("y", 2*rmax + 2*circleBuffer)
@@ -617,7 +618,7 @@ function renderPlot() {
   var circle = viz.selectAll("circle")
 
   // create color scale based on something ????????????????????
-  state.gbscale = d3.scale.linear().domain([state.minscore, state.maxscore]).range([255, 0])
+  state.gbscale = d3.scale.linear().domain([0, 1]).range([255, 0])
 
   // update existing circles to updated scales
   circle.data(state.data, wordtext)
@@ -626,7 +627,7 @@ function renderPlot() {
     .delay(function(d, i) {return i / state.data.length * stagger;})
     .attr("cx", function(d, i) {return state.x(d.X);})
     .attr("cy", function(d, i) {return state.y(d.Y);})
-    .style("fill", function(d) {return d3.rgb(255, state.gbscale(d.S), state.gbscale(d.S)).toString();})
+    .style("fill", function(d) {return d3.rgb(255, state.gbscale(d.P), state.gbscale(d.P)).toString();})
     .attr("r", function(d) {
         if (state.x(d.X) < state.x.range()[0] + rmax || state.y(d.Y) > state.y.range()[0] - rmax) {
           return 0;
@@ -641,7 +642,7 @@ function renderPlot() {
     .attr("cx", function(d, i) {return state.x(d.X);})
     .attr("cy", function(d, i) {return state.y(d.Y);})
     .style("stroke", "black")
-    .style("fill", function(d) {return d3.rgb(255, state.gbscale(d.S), state.gbscale(d.S)).toString();})
+    .style("fill", function(d) {return d3.rgb(255, state.gbscale(d.P), state.gbscale(d.P)).toString();})
     .on("mouseover", function(d) {
         d3.select(this)
           .style("fill", "blue")
@@ -658,7 +659,7 @@ function renderPlot() {
       return tooltip;
     }) .on("mouseout", function(d){ d3.select(this)
           .attr("r", function() {return getr(d);})
-          .style("fill", function() {return d3.rgb(255, state.gbscale(d.S), state.gbscale(d.S)).toString();});
+          .style("fill", function() {return d3.rgb(255, state.gbscale(d.P), state.gbscale(d.P)).toString();});
         return tooltip.style("visibility", "hidden");
       })
     .transition()
