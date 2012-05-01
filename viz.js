@@ -33,6 +33,8 @@ function initState() {
   state.numDatums = 500 // num words to retrieve from server
   state.minscore = 0
   state.maxscore = 0
+  state.minparam = 0
+  state.maxparam = 0
   state.gbscale = null
   state.data = null // holds the retrieved data
   state.x = null // holds the x axis scale func
@@ -607,6 +609,9 @@ function fetchData(ndatums) {
       state.minscore = d3.min(state.data, function(d) {return d.S})
       state.maxscore = d3.max(state.data, function(d) {return d.S})
 
+      state.minparam = d3.min(state.data, function(d) {return d.P})
+      state.maxparam = d3.max(state.data, function(d) {return d.P})
+
       renderPlot();
     });
 }
@@ -617,8 +622,8 @@ function renderPlot() {
 
   var circle = viz.selectAll("circle")
 
-  // create color scale based on something ????????????????????
-  state.gbscale = d3.scale.linear().domain([0, 1]).range([255, 0])
+  // create color scale based on param (temperature)
+  state.gbscale = d3.scale.linear().domain([state.minparam, state.maxparam]).range([255, 0])
 
   // update existing circles to updated scales
   circle.data(state.data, wordtext)
