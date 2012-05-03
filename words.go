@@ -248,6 +248,7 @@ type XYonly struct {
   X float32 // x coordinate
   Y float32 // y coordinate
   S float32 // DOI score
+  P float32 // color param
 }
 
 type Word struct {
@@ -283,10 +284,28 @@ func (w *Word) TotalPageDensity() float32 {
 
 func (w *Word) PageDensity(year string) float32 {
   _, ok := w.C[year]
-  if !ok {return -1}
+  if !ok {return 0}
 
   return float32(w.C[year].W) / float32(w.C[year].P)
 }
+
+func (w *Word) Temperature(year string) float32 {
+  _, ok := w.C[year]
+  if !ok {return 0}
+
+  return float32(w.C[year].W) / w.MaxCount()
+}
+
+func (w *Word) MaxCount() float32 {
+  max := 0
+  for _, entry := range w.C {
+    if entry.W > max {
+      max = entry.W
+    }
+  }
+  return float32(max)
+}
+
 
 func (w *Word) TotalCount() int {
   if w.tc == 0 {
@@ -320,12 +339,13 @@ func (w *Word) String() string {
 ////////////////////////////
 // score calculating code //
 ////////////////////////////
-func BuildXY(words []*Word, scores []float32, xmapper, ymapper func(w *Word) float32) []*XYonly  {
+func BuildXY(words []*Word, scores []float32, xmapper, ymapper, paramMapper func(w *Word) float32) []*XYonly  {
   xyonly := make([]*XYonly, len(words))
   for i, w := range words {
     x := xmapper(w)
     y := ymapper(w)
-    xyonly[i] = &XYonly{W:w.T, X:x, Y:y, S:scores[i]}
+    p := paramMapper(w)
+    xyonly[i] = &XYonly{W:w.T, X:x, Y:y, P:p, S:scores[i]}
   }
   return xyonly
 }
@@ -342,15 +362,23 @@ func Pden(year string) func(*Word) float32 {
   }
 }
 
+func Tmp(year string) func(*Word) float32 {
+  return func(w *Word) float32 {
+    return w.Temperature(year)
+  }
+}
+
 type Weights struct {
   Length float32
   Count float32
   Pages float32
   Books float32
   PageDen float32
+  Temp float32
 }
 
 type Scorer func(w *Word) (float32, bool)
+
 type ScoredWord struct {
   W *Word
   S float32
@@ -367,6 +395,7 @@ func WeightedScoreGenerator(year string, weights, maxes Weights) Scorer {
      score += float32(w.C[year].P) / maxes.Pages * weights.Pages
      score += float32(w.C[year].B) / maxes.Books * weights.Books
      score += float32(w.PageDensity(year)) / maxes.PageDen * weights.PageDen
+     score += float32(w.Temperature(year)) / maxes.Temp * weights.Temp
      return score, true
   }
 }
