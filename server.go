@@ -28,6 +28,7 @@ func main() {
 
   http.HandleFunc("/viz", indexHandler)
   http.HandleFunc("/viz/viz.js", vizScriptHandler)
+  http.HandleFunc("/viz/scattergrams.css", cssFileHandler)
   http.HandleFunc("/data/", dataHandlerGen())
 
   fmt.Println("Starting http server...")
@@ -48,6 +49,13 @@ func vizScriptHandler(w http.ResponseWriter, req *http.Request) {
     file_name := "viz.js"
     file_data, _ := ioutil.ReadFile(file_name)
     w.Header().Set("Content-Type", "text/javascript")
+    _, _ = w.Write(file_data)
+}
+
+func cssFileHandler(w http.ResponseWriter, req *http.Request) {
+    file_name := "scattergrams.css"
+    file_data, _ := ioutil.ReadFile(file_name)
+    w.Header().Set("Content-Type", "text/css")
     _, _ = w.Write(file_data)
 }
 

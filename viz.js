@@ -142,7 +142,7 @@ function initDOItitle() {
 function initDOIsliders() {
   var doiSliders = d3.select("#doiSliders");
 
-  var addDOIslider = function(idName, displayName, i) {
+  var addDOIslider = function(idName, displayName, tooltip, i) {
     doiSliders.append("input")
         .attr("name", idName)
         .attr("type", "range")
@@ -151,16 +151,18 @@ function initDOIsliders() {
         .attr("value", 0)
         .attr("style", "width:" + doiSliderWidth + "px; vertical-align:middle")
         .on("change", function(d) {return reweight(this.value,i);});
-    doiSliders.append("sliderLabel").text(" " + displayName);
+    doiSliders.append("sliderLabel")
+        .text(" " + displayName)
+        .attr("title", tooltip);
     doiSliders.append("br");
   }
 
-  addDOIslider("wordlength", "Word Length", 0);
-  addDOIslider("count", "Count", 1);
-  addDOIslider("pages", "# Pages", 2);
-  addDOIslider("books", "# Books", 3);
-  addDOIslider("pd", "Page Density", 4);
-  addDOIslider("temperature", "Temperature", 5);
+  addDOIslider("wordlength", "Word Length", "Word length is the number of charactes in a word.", 0);
+  addDOIslider("count", "Count", "Count is the number of times a word appeared in the books from a given year.", 1);
+  addDOIslider("pages", "# Pages", "This is the number of pages on which a word appeared in a given year.", 2);
+  addDOIslider("books", "# Books", "This is the number of books in which a word appeared in a given year.", 3);
+  addDOIslider("pd", "Page Density", "Page density is a word's count per page on which it occurred.", 4);
+  addDOIslider("temperature", "Temperature", "Temperature measures how close a word is to its all-time high or low in count. ", 5);
 }
 
 function initDOIlegend() {
