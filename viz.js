@@ -42,6 +42,12 @@ function initState() {
   state.zoom = []
   state.zoomBox = null
   state.weights = "0/0/0/0/0/0"
+
+  // axis/param variables
+  // choices so far are pden, tmp, bks, cnt, wlen
+  state.xvar = "pden"
+  state.yvar = "tmp"
+  state.paramvar = "pden"
 }
 
 function initTooltip() {
@@ -123,7 +129,8 @@ function initVizCanvas() {
 }
 
 function initScales() {
-  appendZoomLevel(1, 30, 1, 150000)
+  //appendZoomLevel(1, 30, 1, 150000)
+  appendZoomLevel(1, 20, .00001, 1)
   renderAxes();
 }
 
@@ -604,7 +611,8 @@ function updateViz() {
 
 // retrieves data and initiates rendering.
 function fetchData(ndatums) {
-  d3.json("/data/" + 0 + "/" + ndatums, function(json) {
+  d3.json("/data/" + state.xvar + "/" + state.yvar + "/" + state.paramvar
+           + "/" + 0 + "/" + ndatums, function(json) {
       state.data = json;
 
       // min and max scores used to make relative encodings

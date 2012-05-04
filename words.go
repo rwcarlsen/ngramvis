@@ -290,10 +290,10 @@ func (w *Word) PageDensity(year string) float32 {
 }
 
 func (w *Word) Temperature(year string) float32 {
-  _, ok := w.C[year]
+  entry, ok := w.C[year]
   if !ok {return 0}
 
-  return float32(w.C[year].W) / w.MaxCount()
+  return float32(entry.W) / w.MaxCount()
 }
 
 func (w *Word) MaxCount() float32 {
@@ -365,6 +365,18 @@ func Pden(year string) func(*Word) float32 {
 func Tmp(year string) func(*Word) float32 {
   return func(w *Word) float32 {
     return w.Temperature(year)
+  }
+}
+
+func Cnt(year string) func(*Word) float32 {
+  return func(w *Word) float32 {
+    return float32(w.C[year].W)
+  }
+}
+
+func Wlen(year string) func(*Word) float32 {
+  return func(w *Word) float32 {
+    return float32(w.Length())
   }
 }
 

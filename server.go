@@ -62,23 +62,27 @@ func cssFileHandler(w http.ResponseWriter, req *http.Request) {
 func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
   words := UnmarshalJsonList(jsonWords)
   data := make([]*XYonly, 0)
+  var scores []float32
+  var scored []*Word
+  var xName, yName, otherName string
+  var year string
 
   var weights, maxes Weights
   setMaxWeights(&maxes)
 
   return func(w http.ResponseWriter, req *http.Request) {
-    //defer func() {
-    //  if r := recover(); r != nil {
-    //    fmt.Println(r)
-    //    fmt.Println("Recovered in 'handler'", r)
-    //  }
-    //}()
+    defer func() {
+      if r := recover(); r != nil {
+        fmt.Println(r)
+        fmt.Println("Recovered in 'handler'", r)
+      }
+    }()
 
     path := req.URL.Path
 
     rangeText := strings.Split(path, "/")
     if rangeText[2] == "reweight" {
-      year := rangeText[3]
+      year = rangeText[3]
 
       updateWeights(rangeText, &weights)
 
@@ -88,7 +92,7 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       scorer := WeightedScoreGenerator(year, weights, maxes)
 
       // generate scores for words if possible
-      scored, scores := GetScores(words, scorer)
+      scored, scores = GetScores(words, scorer)
 
       // convert to XYonly structs
       data = BuildXY(scored, scores, Pden(year), Bk(year), Tmp(year))
@@ -101,11 +105,49 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       return
     }
 
-    lower, err := strconv.Atoi(rangeText[2])
+    if xName != rangeText[2] || yName != rangeText[3] || otherName != rangeText[4] {
+      xName = rangeText[2]
+      yName = rangeText[3]
+      otherName = rangeText[4]
+
+      paramFuncFor := func(name , year string) func(*Word) float32 {
+        var f func(*Word) float32
+        switch name {
+          case "pden":
+            f = Pden(year)
+          case "bks":
+            f = Bk(year)
+          case "cnt":
+            f = Cnt(year)
+          case "tmp":
+            f = Tmp(year)
+          case "wlen":
+            f = Wlen(year)
+          default:
+            panic("Invalid var name")
+        }
+        return f
+      }
+
+      xFunc := paramFuncFor(xName, year)
+      yFunc := paramFuncFor(yName, year)
+      otherFunc := paramFuncFor(otherName, year)
+
+      // convert to XYonly structs
+      data = BuildXY(scored, scores, xFunc, yFunc, otherFunc)
+
+      // sort it
+      data = TreeToXYonly(XYonlyToTree(data, func(a, b interface{}) bool {
+        return a.(*XYonly).S <= b.(*XYonly).S
+      }))
+    }
+    fmt.Println("temp 1999: ", words[0].Temperature("1999"))
+
+    lower, err := strconv.Atoi(rangeText[5])
     if err != nil {
       panic(err)
     }
-    numWanted, err := strconv.Atoi(rangeText[3])
+    numWanted, err := strconv.Atoi(rangeText[6])
     if err != nil {
       panic(err)
     }
