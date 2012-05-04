@@ -3,6 +3,7 @@
 // plot canvas dimensions
 var vizh = 600;
 var vizw = 900;
+var maxPoints = 2000;
 
 // radii for datum circles
 var rmin = 4
@@ -47,7 +48,7 @@ function initState() {
   // choices so far are pden, tmp, bks, cnt, wlen
   state.xvar = "pden"
   state.yvar = "tmp"
-  state.paramvar = "pden"
+  state.paramvar = "tmp"
 }
 
 function initTooltip() {
@@ -130,7 +131,7 @@ function initVizCanvas() {
 
 function initScales() {
   //appendZoomLevel(1, 30, 1, 150000)
-  appendZoomLevel(1, 20, .00001, 1)
+  appendZoomLevel(1, 20, .0001, 1)
   renderAxes();
 }
 
@@ -238,7 +239,7 @@ function initNumDatumsSlider() {
     .attr("name","numDatums")
     .attr("type","range")
     .attr("min", 0)
-    .attr("max", 1000)
+    .attr("max", maxPoints)
     .attr("value", state.numDatums)
     .attr("style", "width:" + numDatumsSliderWidth + "px;")
     .on("change", function(d) {return changeNumDatums(this.value);});

@@ -70,6 +70,25 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
   var weights, maxes Weights
   setMaxWeights(&maxes)
 
+  paramFuncFor := func(name , year string) func(*Word) float32 {
+    var f func(*Word) float32
+    switch name {
+      case "pden":
+        f = Pden(year)
+      case "bks":
+        f = Bk(year)
+      case "cnt":
+        f = Cnt(year)
+      case "tmp":
+        f = Tmp(year)
+      case "wlen":
+        f = Wlen(year)
+      default:
+        panic("Invalid var name")
+    }
+    return f
+  }
+
   return func(w http.ResponseWriter, req *http.Request) {
     defer func() {
       if r := recover(); r != nil {
@@ -94,8 +113,12 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       // generate scores for words if possible
       scored, scores = GetScores(words, scorer)
 
+      xFunc := paramFuncFor(xName, year)
+      yFunc := paramFuncFor(yName, year)
+      otherFunc := paramFuncFor(otherName, year)
+
       // convert to XYonly structs
-      data = BuildXY(scored, scores, Pden(year), Bk(year), Tmp(year))
+      data = BuildXY(scored, scores, xFunc, yFunc, otherFunc)
 
       // sort it
       data = TreeToXYonly(XYonlyToTree(data, func(a, b interface{}) bool {
@@ -110,25 +133,6 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
       yName = rangeText[3]
       otherName = rangeText[4]
 
-      paramFuncFor := func(name , year string) func(*Word) float32 {
-        var f func(*Word) float32
-        switch name {
-          case "pden":
-            f = Pden(year)
-          case "bks":
-            f = Bk(year)
-          case "cnt":
-            f = Cnt(year)
-          case "tmp":
-            f = Tmp(year)
-          case "wlen":
-            f = Wlen(year)
-          default:
-            panic("Invalid var name")
-        }
-        return f
-      }
-
       xFunc := paramFuncFor(xName, year)
       yFunc := paramFuncFor(yName, year)
       otherFunc := paramFuncFor(otherName, year)
@@ -141,7 +145,6 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
         return a.(*XYonly).S <= b.(*XYonly).S
       }))
     }
-    fmt.Println("temp 1999: ", words[0].Temperature("1999"))
 
     lower, err := strconv.Atoi(rangeText[5])
     if err != nil {
