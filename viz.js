@@ -50,7 +50,7 @@ axesVars["bks"] = createAxesVar(3, "bks", "# Books", 1, 100000,
                                  "The number of books in which a word appeared in a given year.");
 axesVars["pden"] = createAxesVar(4, "pden", "Page Density", 1, 30,
                                  "The number of times a word occurred per page on which it occurred.");
-axesVars["tmp"] = createAxesVar(5, "tmp", "Temperature", .0001, 1,
+axesVars["tmp"] = createAxesVar(5, "tmp", "Temperature", .1, 1,
                                  "Temperature measures how close a word is to its all-time high or low in count.");
 
 var state = new Object()
@@ -63,7 +63,9 @@ function initState() {
   state.maxscore = 0
   state.minparam = 0
   state.maxparam = 0
-  state.gbscale = null
+  state.rscale = null
+  state.gscale = null
+  state.bscale = null
   state.data = null // holds the retrieved data
   state.x = null // holds the x axis scale func
   state.y = null // holds the y axis scale func
@@ -166,14 +168,12 @@ function initTitle() {
   var vizTitle = d3.select("#vizTitle")
     .attr("class", "vizTitle")
     .attr("style", "width:" + vizw + "px;")
-    //.attr("style", "width:" + vizw + "px; text-align:center; font-size:300%;")
     .text(axesVars[state.yvar].displayName + " vs. " + axesVars[state.xvar].displayName);
 }
 
 function initDOItitle() {
   var doiTitle = d3.select("#doiTitle")
     .attr("class", "bigLabel")
-    //.attr("style", "text-align:center; font-size:150%; text-decoration:underline;")
     .text("Degree of Interest");
 }
 
@@ -188,7 +188,6 @@ function initDOIsliders() {
         .attr("max", 10)
         .attr("value", 0)
         .attr("class","doiSlider")
-        //.attr("style", "width:" + doiSliderWidth + "px; vertical-align:middle")
         .on("change", function(d) {return reweight(this.value,i);});
     doiSliders.append("sliderLabel")
         .attr("class", "smallLabel")
@@ -210,7 +209,6 @@ function initDOIlegend() {
   var doiLegend = d3.select("#doiLegend");
   
   doiLegend.attr("class", "doiLegend")
-  //doiLegend.html("<strong>Legend</strong>");
   
   var doiLegendSVG = doiLegend.append("svg:svg")
     //.attr("width", 200)
@@ -262,11 +260,9 @@ function initYearSlider() {
 
 function initNumDatumsSlider() {
   var numDatumsSlider = d3.select("#numDatumsSlider")
-    //.attr("style","width:" + vizw + "px; text-align:center");
   numDatumsSlider.append("div")
     .attr("id","numDatumsLabel")
     .text("Words displayed: " + state.numDatums)
-    //.attr("style","font-size:200%;");
     .attr("class","bigLabel")
   numDatumsSlider.append("input")
     .attr("name","numDatums")
@@ -274,7 +270,6 @@ function initNumDatumsSlider() {
     .attr("min", 0)
     .attr("max", maxPoints)
     .attr("value", state.numDatums)
-    //.attr("style", "width:" + numDatumsSliderWidth + "px;")
     .attr("class","numDatumsSlider")
     .on("change", function(d) {return changeNumDatums(this.value);});
 }
@@ -721,7 +716,10 @@ function renderPlot() {
   var circle = viz.selectAll("circle")
 
   // create color scale based on param (temperature)
-  state.gbscale = d3.scale.linear().domain([state.minparam, state.maxparam]).range([255, 0])
+  // These colors retrieved from Cynthia Brewer's ColorBrewer
+  state.rscale = d3.scale.quantize().domain([0,1]).range([33,103,209,247,253,239,178]);
+  state.gscale = d3.scale.quantize().domain([0,1]).range([102,169,229,247,219,138,24]);
+  state.bscale = d3.scale.quantize().domain([0,1]).range([172,207,240,247,199,98,43]);
 
   // update existing circles to updated scales
   circle.data(state.data, wordtext)
@@ -730,7 +728,7 @@ function renderPlot() {
     .delay(function(d, i) {return i / state.data.length * stagger;})
     .attr("cx", function(d, i) {return state.x(d.X);})
     .attr("cy", function(d, i) {return state.y(d.Y);})
-    .style("fill", function(d) {return d3.rgb(255, state.gbscale(d.P), state.gbscale(d.P)).toString();})
+    .style("fill", function(d) {return d3.rgb(state.rscale(d.P),state.gscale(d.P),state.bscale(d.P)).toString();})
     .attr("r", function(d) {
         if (state.x(d.X) < state.x.range()[0] + rmax || state.y(d.Y) > state.y.range()[0] - rmax) {
           return 0;
@@ -745,7 +743,7 @@ function renderPlot() {
     .attr("cx", function(d, i) {return state.x(d.X);})
     .attr("cy", function(d, i) {return state.y(d.Y);})
     .style("stroke", "black")
-    .style("fill", function(d) {return d3.rgb(255, state.gbscale(d.P), state.gbscale(d.P)).toString();})
+    .style("fill", function(d) {return d3.rgb(state.rscale(d.P),state.gscale(d.P),state.bscale(d.P)).toString();})
     .on("mouseover", function(d) {
         d3.select(this)
           .style("fill", "blue")
@@ -762,7 +760,7 @@ function renderPlot() {
       return tooltip;
     }) .on("mouseout", function(d){ d3.select(this)
           .attr("r", function() {return getr(d);})
-          .style("fill", function() {return d3.rgb(255, state.gbscale(d.P), state.gbscale(d.P)).toString();});
+          .style("fill", function(d) {return d3.rgb(state.rscale(d.P),state.gscale(d.P),state.bscale(d.P)).toString();})
         return tooltip.style("visibility", "hidden");
       })
     .transition()
