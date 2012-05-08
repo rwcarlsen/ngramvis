@@ -20,11 +20,38 @@ var stagger  = 2 * transdur
 var doiSliderWidth = 100
 var yearSliderWidth = 500
 var numDatumsSliderWidth = 500
+var doiLegendWidth = 100
+var doiLegendHeight = 100
 
 /////// end adjustable params /////////
 
 var doUpdate = true;
 var mouseIsDown = false;
+
+function createAxesVar(index, id, displayName, zoomMin, zoomMax, explanation) {
+  var tmp = new Object();
+  tmp.index = index;
+  tmp.id = id;
+  tmp.displayName = displayName;
+  tmp.zoomMin = zoomMin;
+  tmp.zoomMax = zoomMax;
+  tmp.explanation = explanation;
+  return tmp;
+}
+
+var axesVars = new Object();
+axesVars["wlen"] = createAxesVar(0, "wlen", "Word Length", 1, 20,
+                                 "The number of charactes in a word.");
+axesVars["cnt"] = createAxesVar(1, "cnt", "Count", 1, 1000000000,
+                                 "The number of times a word appeared in the books from a given year.");
+axesVars["pgs"] = createAxesVar(2, "pgs", "# Pages", 1, 20,
+                                 "The number of pages on which a word appeared in a given year.");
+axesVars["bks"] = createAxesVar(3, "bks", "# Books", 1, 100000,
+                                 "The number of books in which a word appeared in a given year.");
+axesVars["pden"] = createAxesVar(4, "pden", "Page Density", 1, 30,
+                                 "The number of times a word occurred per page on which it occurred.");
+axesVars["tmp"] = createAxesVar(5, "tmp", "Temperature", .0001, 1,
+                                 "Temperature measures how close a word is to its all-time high or low in count.");
 
 var state = new Object()
 
@@ -130,20 +157,23 @@ function initVizCanvas() {
 }
 
 function initScales() {
-  //appendZoomLevel(1, 30, 1, 150000)
-  appendZoomLevel(1, 20, .0001, 1)
+  appendZoomLevel(axesVars[state.xvar].zoomMin, axesVars[state.xvar].zoomMax,
+                  axesVars[state.yvar].zoomMin, axesVars[state.yvar].zoomMax);
   renderAxes();
 }
 
 function initTitle() {
   var vizTitle = d3.select("#vizTitle")
-    .attr("style", "width:" + vizw + "px; text-align:center; font-size:300%;")
-    .text("Books vs. Page Density");
+    .attr("class", "vizTitle")
+    .attr("style", "width:" + vizw + "px;")
+    //.attr("style", "width:" + vizw + "px; text-align:center; font-size:300%;")
+    .text(axesVars[state.yvar].displayName + " vs. " + axesVars[state.xvar].displayName);
 }
 
 function initDOItitle() {
-  var vizTitle = d3.select("#doiTitle")
-    .attr("style", "text-align:center; font-size:150%; text-decoration:underline;")
+  var doiTitle = d3.select("#doiTitle")
+    .attr("class", "bigLabel")
+    //.attr("style", "text-align:center; font-size:150%; text-decoration:underline;")
     .text("Degree of Interest");
 }
 
@@ -157,20 +187,20 @@ function initDOIsliders() {
         .attr("min", -10)
         .attr("max", 10)
         .attr("value", 0)
-        .attr("style", "width:" + doiSliderWidth + "px; vertical-align:middle")
+        .attr("class","doiSlider")
+        //.attr("style", "width:" + doiSliderWidth + "px; vertical-align:middle")
         .on("change", function(d) {return reweight(this.value,i);});
     doiSliders.append("sliderLabel")
+        .attr("class", "smallLabel")
         .text(" " + displayName)
         .attr("title", tooltip);
     doiSliders.append("br");
   }
-
-  addDOIslider("wordlength", "Word Length", "Word length is the number of charactes in a word.", 0);
-  addDOIslider("count", "Count", "Count is the number of times a word appeared in the books from a given year.", 1);
-  addDOIslider("pages", "# Pages", "This is the number of pages on which a word appeared in a given year.", 2);
-  addDOIslider("books", "# Books", "This is the number of books in which a word appeared in a given year.", 3);
-  addDOIslider("pd", "Page Density", "Page density is a word's count per page on which it occurred.", 4);
-  addDOIslider("temperature", "Temperature", "Temperature measures how close a word is to its all-time high or low in count. ", 5);
+  
+  for(var index in axesVars) {
+    var axesVar = axesVars[index];
+    addDOIslider(axesVar.id, axesVar.displayName, axesVar.explanation, axesVar.index);
+  }
 }
 
 function initDOIlegend() {
@@ -179,10 +209,12 @@ function initDOIlegend() {
 
   var doiLegend = d3.select("#doiLegend");
   
-  doiLegend.attr("style", "text-align:center;")
-  doiLegend.html("<strong>Legend</strong>");
+  doiLegend.attr("class", "doiLegend")
+  //doiLegend.html("<strong>Legend</strong>");
   
-  var doiLegendSVG = doiLegend.append("svg:svg");
+  var doiLegendSVG = doiLegend.append("svg:svg")
+    //.attr("width", 200)
+    .attr("height", 100);
   
   // Little circle
   doiLegendSVG.append("svg:circle")
@@ -230,19 +262,55 @@ function initYearSlider() {
 
 function initNumDatumsSlider() {
   var numDatumsSlider = d3.select("#numDatumsSlider")
-    .attr("style","width:" + vizw + "px; text-align:center");
+    //.attr("style","width:" + vizw + "px; text-align:center");
   numDatumsSlider.append("div")
     .attr("id","numDatumsLabel")
-    .text("Datapoints displayed: " + state.numDatums)
-    .attr("style","font-size:200%;");
+    .text("Words displayed: " + state.numDatums)
+    //.attr("style","font-size:200%;");
+    .attr("class","bigLabel")
   numDatumsSlider.append("input")
     .attr("name","numDatums")
     .attr("type","range")
     .attr("min", 0)
     .attr("max", maxPoints)
     .attr("value", state.numDatums)
-    .attr("style", "width:" + numDatumsSliderWidth + "px;")
+    //.attr("style", "width:" + numDatumsSliderWidth + "px;")
+    .attr("class","numDatumsSlider")
     .on("change", function(d) {return changeNumDatums(this.value);});
+}
+
+function initXYDropdowns() {
+  var xyDropdowns = d3.select("#xyDropdowns")
+  xyDropdowns.append("dropdownLabel")
+    .attr("class", "smallLabel")
+    .text("X Axis: ");
+  var xDropdown = xyDropdowns.append("select")
+    .attr("name","xDropdown");
+  xyDropdowns.append("br");
+  xyDropdowns.append("dropdownLabel")
+    .attr("class", "smallLabel")
+    .text("Y Axis: ");
+  var yDropdown = xyDropdowns.append("select")
+    .attr("name","yDropdown");
+    
+  for(var i in axesVars) {
+    axesVar = axesVars[i];
+    var x = xDropdown.append("option")
+      .text(axesVar.displayName)
+      .attr("id",axesVar.id);
+    if(axesVar.id == state.xvar) {
+      x.attr("selected","selected");
+    }
+    var y = yDropdown.append("option")
+      .text(axesVar.displayName)
+      .attr("id",axesVar.id);
+    if(axesVar.id == state.yvar) {
+      y.attr("selected","selected");
+    }
+  }
+  
+  xDropdown.on("change", function(d) {return changeXaxis(this.options[this.selectedIndex].id);});
+  yDropdown.on("change", function(d) {return changeYaxis(this.options[this.selectedIndex].id);});
 }
 
 function isRightClick(e) {
@@ -601,8 +669,27 @@ function changeYear(newYear) {
 function changeNumDatums(newNum) {
     state.numDatums = newNum;
     var numDatumsSlider = d3.select("#numDatumsSlider");
-    numDatumsSlider.select("#numDatumsLabel").text("Datapoints displayed: " + state.numDatums);
+    numDatumsSlider.select("#numDatumsLabel").text("Words displayed: " + state.numDatums);
     doUpdate = true;
+}
+
+function changeXaxis(newX) {
+    state.xvar = newX;
+    resetAxes();
+    doUpdate = true;
+}
+
+function changeYaxis(newY) {
+    state.yvar = newY;
+    resetAxes();
+    doUpdate = true;
+}
+
+function resetAxes() {
+    state.zoom = [];
+    state.zoomBox = null;
+    initScales();
+    initTitle();
 }
 
 // recalcs scores based on weights and initiates data retrieval
@@ -708,6 +795,7 @@ initNumDatumsSlider();
 initDOItitle();
 initDOIsliders();
 initDOIlegend();
+initXYDropdowns();
 
 // update/rerender the vis once per second at the most
 setInterval(function() {

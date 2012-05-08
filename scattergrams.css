@@ -1,14 +1,71 @@
-.header {
-    font-size: 50%;
+/*
+Colors:
+  badger red: #b70101
+  gold: #E7D9C1 
+  black: #000000
+  medium grey: #C8C5BB
+*/
+
+body {
+    margin:0;
+    font-family:;
 }
 
-#sidebar {
-    border-top: 1px solid #99CC33;
-    border-left: 1px solid #99CC33;
-    height: 300px;
-    width: 200px;
-    float: left;
-    margin-left: 5px;
-    padding: 5px 0 0 5px;
-    font-size: 300%;
+.header {
+    background-color:#b70101;
+    color:white;
+}
+
+.bigheader {
+    font-size: 400%;
+}
+
+.subheader {
+    font-size:150%;
+}
+
+.sidebar {
+    background-color:#C8C5BB;
+    color:black;
+    padding:10px;
+    margin:0;
+}
+
+.viz {
+    background-color:white;
+}
+
+.smallLabel {
+    font-size: 100%;
+}
+
+.bigLabel {
+    padding-top:20px;
+    padding-bottom:5px;
+    text-align:left; 
+    font-size:125%;
+    font-weight:bold;
+}
+
+.vizTitle {
+    /*width:" + vizw + "px;*/
+    text-align:center; 
+    font-size:250%;
+}
+
+.doiSlider {
+    width:100px;
+    vertical-align:middle;
+}
+
+.numDatumsSlider {
+    width:200px;
+}
+
+.yearSlider {
+    width:500px;
+}
+
+.doiLegend {
+
 }

@@ -2,33 +2,40 @@
 
 <html>
   <head>
-    <title>Books vs. Page Density</title>
+    <title>Scattergrams</title>
     <script type="text/javascript" src="http://d3js.org/d3.v2.js"></script>
     <link rel="stylesheet" type="text/css" href="viz/scattergrams.css" />
   </head>
 
-  <body>
-    <div id="test" class="header">test<br /></div>
-    <div id="vizTitle"></div>
+  <body id="body">
+    <div class="header">
+      <div class="bigheader">Scattergrams</div>
+      <div class="subheader">A Google n-grams visualization tool by Robert Carlsen and Eric Alexander</div>
+    </div>
+    <!--<div id="vizTitle"></div>-->
     <div id="tooltip"></div>
-    <table>
+    <table border="0">
       <tr>
-        <td><div id="yearSlider"></div></td>
-      </tr>
-      <tr>
-        <td><div id="viz"></div></td>
-        <td>
+        <!-- Left side -->
+        <td class="sidebar" valign="top">
           <table>
-            <tr><div id="doiTitle"></div></tr>
-            <tr><br /></tr>
+            <tr><div class="bigLabel">Plotted Variables</div></tr>
+            <tr><div id="xyDropdowns"></div></tr>
+            <tr><div id="numDatumsSlider"></div></tr>
+            <tr><div class="bigLabel">Degree of Interest</div></tr>
             <tr><div id="doiSliders"></div></tr>
-            <tr><br /></tr>
+            <tr><div class="bigLabel">Legend</div></tr>
             <tr><div id="doiLegend"></div></tr>
           </table>
         </td>
-      </tr>
-      <tr>
-        <td><div id="numDatumsSlider"></div></td>
+        <!-- Right side -->
+        <td class="vis" valign="top">
+          <table>
+            <tr><div id="vizTitle"></div></tr>
+            <tr><div id="yearSlider"></div></tr>
+            <tr><div id="viz"></div></tr>
+          </table>
+        </td>
       </tr>
     </table>
     <script type="text/javascript" src="viz/viz.js"></script>
