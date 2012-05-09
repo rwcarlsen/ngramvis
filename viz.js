@@ -268,6 +268,11 @@ function initLegends() {
     .text("Maximum temperature");
   tempLegendSVG.append("svg:text")
     .attr("x", shapeCenter + squareWidth/2 + midBuffer)
+    .attr("y", squareWidth/2 + edgeBuffer + 3*squareWidth)
+    .attr("dominant-baseline","central")
+    .text("Average temperature");
+  tempLegendSVG.append("svg:text")
+    .attr("x", shapeCenter + squareWidth/2 + midBuffer)
     .attr("y", squareWidth/2 + edgeBuffer + 6*squareWidth)
     .attr("dominant-baseline","central")
     .text("Minimum temperature");
@@ -421,8 +426,8 @@ function popZoomLevel() {
 
 function appendZoomLevel(xmin, xmax, ymin, ymax) {
   // additional offsets making space for axis text labels
-  var leftOffset = 40
-  var bottomOffset = 40
+  var leftOffset = 70 //changed from 40 to fit axis labels
+  var bottomOffset = 90 //changed from 40 to fit axis labels
 
   //padding around the graphing space
   var pad = new Object()
@@ -528,6 +533,34 @@ function renderAxes() {
   function tickKey(d) {return d;}
 
   ///// tick mark labels ///////
+  
+  // Variable names
+  viz.selectAll(".xName")
+    .text(axesVars[state.xvar].displayName);
+  viz.selectAll(".xName")
+    .data([axesVars[state.xvar].displayName])
+    .enter().append("svg:text")
+    .attr("x",vizw/2)
+    .attr("y",vizh - 30)
+    .attr("class","xName")
+    .text(String);
+  viz.selectAll(".xName")
+    .data([axesVars[state.xvar].displayName])
+    .exit().remove();
+    
+  viz.selectAll(".yName")
+    .text(axesVars[state.yvar].displayName);
+  viz.selectAll(".yName")
+    .data([axesVars[state.yvar].displayName])
+    .enter().append("svg:text")
+    .attr("x",30)
+    .attr("y",vizh/2)
+    .attr("class","yName")
+    .attr("transform", "rotate(-90 30 " + (vizh/2) + ")")
+    .text(String);
+  viz.selectAll(".yName")
+    .data([axesVars[state.yvar].displayName])
+    .exit().remove();
 
   // x labels
   viz.selectAll(".xLabel")
