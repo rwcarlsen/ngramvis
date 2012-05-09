@@ -39,6 +39,10 @@ body {
     font-size: 100%;
 }
 
+.midLabel {
+    font-weight:bold;
+}
+
 .bigLabel {
     padding-top:20px;
     padding-bottom:5px;

@@ -63,9 +63,12 @@ function initState() {
   state.maxscore = 0
   state.minparam = 0
   state.maxparam = 0
-  state.rscale = null
-  state.gscale = null
-  state.bscale = null
+  
+  // Temperature color scale: These colors retrieved from Cynthia Brewer's ColorBrewer
+  state.rscale = d3.scale.quantize().domain([0,1]).range([33,103,209,247,253,239,178]);
+  state.gscale = d3.scale.quantize().domain([0,1]).range([102,169,229,247,219,138,24]);
+  state.bscale = d3.scale.quantize().domain([0,1]).range([172,207,240,247,199,98,43]);
+  
   state.data = null // holds the retrieved data
   state.x = null // holds the x axis scale func
   state.y = null // holds the y axis scale func
@@ -202,43 +205,72 @@ function initDOIsliders() {
   }
 }
 
-function initDOIlegend() {
-  var circleBuffer = 15;
-  var circleX = doiSliderWidth / 2;
+function initLegends() {
+  var shapeCenter = 2*rmax;
+  var edgeBuffer = 5;
+  var midBuffer = 15;
 
-  var doiLegend = d3.select("#doiLegend");
-  
-  doiLegend.attr("class", "doiLegend")
-  
+  // Degree of Interest legend
+  var doiLegend = d3.select("#doiLegend")
+    .attr("class", "doiLegend");
   var doiLegendSVG = doiLegend.append("svg:svg")
     //.attr("width", 200)
-    .attr("height", 100);
+    .attr("height", 2*edgeBuffer + 2*rmin + 2*rmax + midBuffer);
   
   // Little circle
   doiLegendSVG.append("svg:circle")
-    .attr("r", rmin)
-    .attr("cx", circleX)
-    .attr("cy", rmax + circleBuffer)
+    .attr("r", rmax)
+    .attr("cx", shapeCenter)
+    .attr("cy", rmax + edgeBuffer)
     .style("stroke","black")
     .style("fill","white");
   doiLegendSVG.append("svg:text")
-    .attr("x", circleX + rmax + circleBuffer)
-    .attr("y", rmax + circleBuffer)
+    .attr("x", shapeCenter + rmax + midBuffer)
+    .attr("y", rmax + edgeBuffer)
     .attr("dominant-baseline","central")
-    .text("Minimum DOI");
+    .text("Maximum DOI");
     
   // Big circle
   doiLegendSVG.append("svg:circle")
-    .attr("r", rmax)
-    .attr("cx", circleX)
-    .attr("cy", 2*rmax + 2*circleBuffer)
+    .attr("r", rmin)
+    .attr("cx", shapeCenter)
+    .attr("cy", edgeBuffer + 2*rmin + rmax + midBuffer)
     .style("stroke","black")
     .style("fill","white");
   doiLegendSVG.append("svg:text")
-    .attr("x", circleX + rmax + circleBuffer)
-    .attr("y", 2*rmax + 2*circleBuffer)
+    .attr("x", shapeCenter + rmax + midBuffer)
+    .attr("y", edgeBuffer + 2*rmin + rmax + midBuffer)
     .attr("dominant-baseline","central")
-    .text("Maximum DOI");
+    .text("Minimum DOI");
+
+  // Temperature legend
+  var squareWidth = 20;
+  
+  var tempLegend = d3.select("#tempLegend")
+    .attr("class", "tempLegend");
+  var tempLegendSVG = tempLegend.append("svg:svg")
+    .attr("height", 7*squareWidth + 2*edgeBuffer);
+  
+  for(var i=6; i>=0; i--) {
+    tempLegendSVG.append("svg:rect")
+      .attr("width", squareWidth)
+      .attr("height", squareWidth)
+      .attr("x", shapeCenter - squareWidth/2)
+      .attr("y", edgeBuffer + (6-i)*squareWidth)
+      .style("stroke","black")
+      .style("fill", function(d) {return d3.rgb(state.rscale(i/7.0),state.gscale(i/7.0),state.bscale(i/7.0)).toString();})
+  }
+  
+  tempLegendSVG.append("svg:text")
+    .attr("x", shapeCenter + squareWidth/2 + midBuffer)
+    .attr("y", squareWidth/2 + edgeBuffer)
+    .attr("dominant-baseline","central")
+    .text("Maximum temperature");
+  tempLegendSVG.append("svg:text")
+    .attr("x", shapeCenter + squareWidth/2 + midBuffer)
+    .attr("y", squareWidth/2 + edgeBuffer + 6*squareWidth)
+    .attr("dominant-baseline","central")
+    .text("Minimum temperature");
 }
 
 function initYearSlider() {
@@ -715,12 +747,6 @@ function renderPlot() {
 
   var circle = viz.selectAll("circle")
 
-  // create color scale based on param (temperature)
-  // These colors retrieved from Cynthia Brewer's ColorBrewer
-  state.rscale = d3.scale.quantize().domain([0,1]).range([33,103,209,247,253,239,178]);
-  state.gscale = d3.scale.quantize().domain([0,1]).range([102,169,229,247,219,138,24]);
-  state.bscale = d3.scale.quantize().domain([0,1]).range([172,207,240,247,199,98,43]);
-
   // update existing circles to updated scales
   circle.data(state.data, wordtext)
     .transition()
@@ -794,7 +820,7 @@ initYearSlider();
 initNumDatumsSlider();
 initDOItitle();
 initDOIsliders();
-initDOIlegend();
+initLegends();
 initXYDropdowns();
 
 // update/rerender the vis once per second at the most
