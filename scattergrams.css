@@ -57,6 +57,16 @@ body {
     font-size:250%;
 }
 
+.xName {
+    font-weight:bold;
+    font-size:125%;
+}
+
+.yName {
+    font-weight:bold;
+    font-size:125%;
+}
+
 .doiSlider {
     width:100px;
     vertical-align:middle;
