@@ -46,7 +46,7 @@ axesVars["cnt"] = createAxesVar(1, "cnt", "Count", 1, 1000000000,
                                  "The number of times a word appeared in the books from a given year.");
 axesVars["pgs"] = createAxesVar(2, "pgs", "# Pages", 1, 20,
                                  "The number of pages on which a word appeared in a given year.");
-axesVars["bks"] = createAxesVar(3, "bks", "# Books", 1, 100000,
+axesVars["bks"] = createAxesVar(3, "bks", "# Books", 1, 500000,
                                  "The number of books in which a word appeared in a given year.");
 axesVars["pden"] = createAxesVar(4, "pden", "Page Density", 1, 30,
                                  "The number of times a word occurred per page on which it occurred.");
@@ -752,8 +752,10 @@ function renderPlot() {
           .style("visibility", "visible")
           .style("top", event.pageY+"px").style("left",(event.pageX+15)+"px")
           .html(function() {
-            return "\"" + d.W + "\"<br />den=" + d.X.toFixed(3) + "<br />#bks=" + String(d.Y)
-                       + "<br />score=" + d.S.toFixed(3)
+            return "\"" + d.W + "\"<br />" 
+                        + axesVars[state.xvar].displayName + "=" + d.X.toFixed(3) + "<br />" 
+                        + axesVars[state.yvar].displayName + "=" + d.Y.toFixed(3) + "<br />"
+                        + "DOI score=" + d.S.toFixed(3);
           });
     })
     .on("mousemove", function(){
