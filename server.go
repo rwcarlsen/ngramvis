@@ -83,6 +83,8 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
         f = Tmp(year)
       case "wlen":
         f = Wlen(year)
+      case "bden":
+        f = Bden(year)
       default:
         panic("Invalid var name")
     }
@@ -177,6 +179,7 @@ func setMaxWeights(w *Weights) {
   w.Books = 1e5 * 6.6948 * 0.162
   w.PageDen = 17 * 1.05334 * 1.123
   w.Temp = 1
+  w.BookDen = w.PageDen / 200 //TODO: WHAT IS A GOOD MAX WEIGHT FOR BOOKDENSITY??
 }
 
 func updateWeights(text []string, w *Weights) {
@@ -186,8 +189,9 @@ func updateWeights(text []string, w *Weights) {
   books, _   := strconv.ParseFloat(text[7], 32);
   pageden, _ := strconv.ParseFloat(text[8], 32);
   temp, _ := strconv.ParseFloat(text[9], 32);
+  bookden, _ := strconv.ParseFloat(text[10],32);
 
-  tot := float32(math.Abs(length) + math.Abs(count) + math.Abs(pages) + math.Abs(books) + math.Abs(pageden) + math.Abs(temp))
+  tot := float32(math.Abs(length) + math.Abs(count) + math.Abs(pages) + math.Abs(books) + math.Abs(pageden) + math.Abs(temp) + math.Abs(bookden))
   if tot == 0 {
     tot = 1
   }
@@ -198,7 +202,8 @@ func updateWeights(text []string, w *Weights) {
   w.Books = float32(books) / tot
   w.PageDen = float32(pageden) / tot
   w.Temp = float32(temp) / tot
+  w.BookDen = float32(bookden) / tot
 
-  fmt.Println("new weights: ", length, count, pages, books, pageden, temp)
+  fmt.Println("new weights: ", length, count, pages, books, pageden, temp, bookden)
 }
 

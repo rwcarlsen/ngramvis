@@ -52,6 +52,8 @@ axesVars["pden"] = createAxesVar(4, "pden", "Page Density", 1, 30,
                                  "The number of times a word occurred per page on which it occurred.");
 axesVars["tmp"] = createAxesVar(5, "tmp", "Temperature", .1, 1,
                                  "Temperature measures how close a word is to its all-time high or low in count.");
+axesVars["bden"] = createAxesVar(6, "bden", "Book Density", 1, 10000,
+                                 "The number of times a word occurred per book in which it occurred.");
 
 var state = new Object()
 
@@ -74,7 +76,7 @@ function initState() {
   state.y = null // holds the y axis scale func
   state.zoom = []
   state.zoomBox = null
-  state.weights = "0/0/0/0/0/0"
+  state.weights = "0/0/0/0/0/0/0"
 
   // axis/param variables
   // choices so far are pden, tmp, bks, cnt, wlen

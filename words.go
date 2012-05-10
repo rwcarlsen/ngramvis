@@ -289,6 +289,17 @@ func (w *Word) PageDensity(year string) float32 {
   return float32(w.C[year].W) / float32(w.C[year].P)
 }
 
+func (w *Word) TotalBookDensity() float32 {
+  return float32(w.TotalCount()) / float32(w.TotalBooks())
+}
+
+func (w *Word) BookDensity(year string) float32 {
+  _, ok := w.C[year]
+  if !ok {return 0}
+  
+  return float32(w.C[year].W) / float32(w.C[year].B)
+}
+
 func (w *Word) Temperature(year string) float32 {
   entry, ok := w.C[year]
   if !ok {return 0}
@@ -362,6 +373,12 @@ func Pden(year string) func(*Word) float32 {
   }
 }
 
+func Bden(year string) func(*Word) float32 {
+  return func(w *Word) float32 {
+    return w.BookDensity(year)
+  }
+}
+
 func Tmp(year string) func(*Word) float32 {
   return func(w *Word) float32 {
     return w.Temperature(year)
@@ -387,6 +404,7 @@ type Weights struct {
   Books float32
   PageDen float32
   Temp float32
+  BookDen float32
 }
 
 type Scorer func(w *Word) (float32, bool)
@@ -408,6 +426,7 @@ func WeightedScoreGenerator(year string, weights, maxes Weights) Scorer {
      score += float32(w.C[year].B) / maxes.Books * weights.Books
      score += float32(w.PageDensity(year)) / maxes.PageDen * weights.PageDen
      score += float32(w.Temperature(year)) / maxes.Temp * weights.Temp
+     score += float32(w.BookDensity(year)) / maxes.BookDen * weights.BookDen
      return score, true
   }
 }
