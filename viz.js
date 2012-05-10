@@ -295,6 +295,23 @@ function initYearSlider() {
     .on("change", function(d) {return changeYear(this.value);});
 }
 
+function initPlayButton() {
+  var playButton = d3.select("#playButton")
+    .append("input")
+    .attr("type","submit")
+    .attr("value", "Animate time")
+    .attr("class", "playButton")
+    .on("click", function(d) {return animateTime();}); 
+}
+
+function animateTime() {
+  while (state.currYear < 2008) {
+    setTimeout(changeYear(state.currYear + 1),1250);
+    //changeYear(state.currYear + 1);
+    updateViz();
+  }
+}
+
 function initNumDatumsSlider() {
   var numDatumsSlider = d3.select("#numDatumsSlider")
   numDatumsSlider.append("div")
@@ -850,6 +867,7 @@ initTooltip();
 initVizCanvas();
 initScales();
 initYearSlider();
+//initPlayButton();
 initNumDatumsSlider();
 initDOItitle();
 initDOIsliders();
