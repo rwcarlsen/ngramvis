@@ -50,7 +50,7 @@ axesVars["bks"] = createAxesVar(3, "bks", "# Books", 1, 500000,
                                  "The number of books in which a word appeared in a given year.");
 axesVars["pden"] = createAxesVar(4, "pden", "Page Density", 1, 30,
                                  "The number of times a word occurred per page on which it occurred.");
-axesVars["tmp"] = createAxesVar(5, "tmp", "Temperature", .1, 1,
+axesVars["tmp"] = createAxesVar(5, "tmp", "Temperature", .0001, 1,
                                  "Temperature measures how close a word is to its all-time high or low in count.");
 axesVars["bden"] = createAxesVar(6, "bden", "Book Density", 1, 10000,
                                  "The number of times a word occurred per book in which it occurred.");
@@ -77,6 +77,8 @@ function initState() {
   state.zoom = []
   state.zoomBox = null
   state.weights = "0/0/0/0/0/0/0"
+  state.followed = []
+  state.followedYear = state.currYear
 
   // axis/param variables
   // choices so far are pden, tmp, bks, cnt, wlen
@@ -205,6 +207,22 @@ function initDOIsliders() {
     var axesVar = axesVars[index];
     addDOIslider(axesVar.id, axesVar.displayName, axesVar.explanation, axesVar.index);
   }
+
+  // seed to year of highest overall score for selected/followed words
+  //doiSliders.append("input")
+  //    .attr("name", "updateButton")
+  //    .attr("type", "button")
+  //    .attr("value", "Seek Highest")
+  //    .attr("class","doiSlider")
+  //    .on("click", function(d) {
+  //      if (state.followed.length == 0) {
+  //        return
+  //      }
+  //      changeYear(state.followedYear)
+  //      doUpdate = true
+  //    });
+  //doiSliders.append("br");
+
 }
 
 function initLegends() {
@@ -776,6 +794,34 @@ function updateViz() {
   d3.json("/data/reweight/" + state.currYear + "/" + state.weights, function(json) {fetchData(state.numDatums);});
 }
 
+// recalcs scores based on weights and initiates data retrieval
+function fetchFollowedYear() {
+  wlist = state.followed.join(",")
+  d3.json("/data/follow/" + wlist, function(json) {state.followedYear = json;});
+}
+
+function isFollowed(d) {
+  for (i in state.followed) {
+    if (d.W == state.followed[i]) {
+      return true
+    }
+  }
+  return false
+}
+
+function unfollow(d) {
+  if (state.followed.length == 0) {
+    state.followedYear = state.currYear
+    return
+  }
+  for (i in state.followed) {
+    if (d.W == state.followed[i]) {
+      state.followed.splice(i, 1)
+      break
+    }
+  }
+}
+
 // retrieves data and initiates rendering.
 function fetchData(ndatums) {
   d3.json("/data/" + state.xvar + "/" + state.yvar + "/" + state.paramvar
@@ -806,7 +852,12 @@ function renderPlot() {
     .delay(function(d, i) {return i / state.data.length * stagger;})
     .attr("cx", function(d, i) {return state.x(d.X);})
     .attr("cy", function(d, i) {return state.y(d.Y);})
-    .style("fill", function(d) {return d3.rgb(state.rscale(d.P),state.gscale(d.P),state.bscale(d.P)).toString();})
+    .style("fill", function(d) {
+      if (isFollowed(d)) {
+        return "purple"
+      }
+      return d3.rgb(state.rscale(d.P),state.gscale(d.P),state.bscale(d.P)).toString();
+    })
     .attr("r", function(d) {
         if (state.x(d.X) < state.x.range()[0] + rmax || state.y(d.Y) > state.y.range()[0] - rmax) {
           return 0;
@@ -824,7 +875,12 @@ function renderPlot() {
     .style("fill", function(d) {return d3.rgb(state.rscale(d.P),state.gscale(d.P),state.bscale(d.P)).toString();})
     .on("mouseover", function(d) {
         d3.select(this)
-          .style("fill", "blue")
+          .style("fill", function(d) {
+            if (isFollowed(d)) {
+              return "purple"
+            }
+            return "green"
+          })
           .attr("r", function() {return getrbig(d);});
         return tooltip
           .style("visibility", "visible")
@@ -838,10 +894,31 @@ function renderPlot() {
     })
     .on("mousemove", function(){
       return tooltip;
-    }) .on("mouseout", function(d){ d3.select(this)
+    }) .on("mouseout", function(d){
+        d3.select(this)
           .attr("r", function() {return getr(d);})
-          .style("fill", function(d) {return d3.rgb(state.rscale(d.P),state.gscale(d.P),state.bscale(d.P)).toString();})
+          .style("fill", function(d) {
+            if (isFollowed(d)) {
+              return "purple"
+            }
+            return d3.rgb(state.rscale(d.P),state.gscale(d.P),state.bscale(d.P)).toString();
+          })
         return tooltip.style("visibility", "hidden");
+      })
+    .on("click", function(d){
+        if (isFollowed(d)) {
+          d3.select(this)
+            .style("fill", function(d) {return d3.rgb(state.rscale(d.P),state.gscale(d.P),state.bscale(d.P)).toString();})
+          unfollow(d)
+          return
+        }
+
+        d3.select(this)
+          .style("fill", "purple")
+
+        state.followed.push(d.W)
+        fetchFollowedYear()
+        return 
       })
     .transition()
     .duration(transdur)

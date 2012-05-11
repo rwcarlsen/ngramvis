@@ -445,13 +445,16 @@ func GetScores(words []*Word, scorer Scorer) (scored []*Word, scores []float32) 
   percpu := int(float32(len(words)) / float32(NCPU) + 1)
   ch := make(chan *ScoredWord, 100)
   dead := make(chan bool)
+  if len(words) <= 100 {
+    NCPU = 1
+    percpu = len(words)
+  }
   for i := 0; i < NCPU; i++ {
     start := i * percpu
     end := start + percpu
     if end > len(words) {
       end = len(words)
     }
-    fmt.Println("sending ", end - start, " words to goroutine.")
     go calcScores(words[start:end], scorer, ch, dead)
   }
 
