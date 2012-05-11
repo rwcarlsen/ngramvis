@@ -85,6 +85,8 @@ func dataHandlerGen() func(http.ResponseWriter, *http.Request) {
         f = Wlen(year)
       case "bden":
         f = Bden(year)
+      case "pgs":
+        f = Pg(year)
       default:
         panic("Invalid var name")
     }

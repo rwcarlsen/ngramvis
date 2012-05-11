@@ -317,7 +317,6 @@ func (w *Word) MaxCount() float32 {
   return float32(max)
 }
 
-
 func (w *Word) TotalCount() int {
   if w.tc == 0 {
     for _, entry := range w.C {
@@ -388,6 +387,12 @@ func Tmp(year string) func(*Word) float32 {
 func Cnt(year string) func(*Word) float32 {
   return func(w *Word) float32 {
     return float32(w.C[year].W)
+  }
+}
+
+func Pg(year string) func(*Word) float32 {
+  return func(w *Word) float32 {
+    return float32(w.C[year].P)
   }
 }
 

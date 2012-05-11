@@ -44,7 +44,7 @@ axesVars["wlen"] = createAxesVar(0, "wlen", "Word Length", 1, 20,
                                  "The number of charactes in a word.");
 axesVars["cnt"] = createAxesVar(1, "cnt", "Count", 1, 1000000000,
                                  "The number of times a word appeared in the books from a given year.");
-axesVars["pgs"] = createAxesVar(2, "pgs", "# Pages", 1, 20,
+axesVars["pgs"] = createAxesVar(2, "pgs", "# Pages", 1, 10000000,
                                  "The number of pages on which a word appeared in a given year.");
 axesVars["bks"] = createAxesVar(3, "bks", "# Books", 1, 500000,
                                  "The number of books in which a word appeared in a given year.");
